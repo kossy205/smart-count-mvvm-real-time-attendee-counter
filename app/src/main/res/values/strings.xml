@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Smart Count</string>
+    <string name="accessibility_service_description">Accessibility service to access volume buttons</string>
+</resources>
