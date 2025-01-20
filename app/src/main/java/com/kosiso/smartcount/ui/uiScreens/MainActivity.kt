@@ -2,7 +2,12 @@ package com.kosiso.smartcount.ui.uiScreens
 
 
 import android.Manifest
+import android.Manifest.permission
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.http.SslCertificate.restoreState
+import android.net.http.SslCertificate.saveState
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
@@ -12,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,6 +63,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.kosiso.smartcount.ui.menu.BottomNavItem
@@ -66,6 +73,7 @@ import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
+import com.kosiso.smartcount.utils.Constants
 import com.kosiso.smartcount.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -82,7 +90,9 @@ class MainActivity : ComponentActivity() {
      * this should be done when you need a view Model class only for TapScreen()
      */
     val mainViewModel: MainViewModel by viewModels()
+    private var navControllerState: NavHostController? = null
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -90,6 +100,9 @@ class MainActivity : ComponentActivity() {
             Permission()
 
             val navController = rememberNavController()
+            navControllerState = navController
+
+            handleIntent(intent, navController)
 
             val bottomNavItems = listOf<BottomNavItem>(
                 BottomNavItem(
@@ -240,6 +253,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Override
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Handle the intent when activity is already running
+        navControllerState?.let { navController ->
+            handleIntent(intent, navController)
+        }
+    }
+
+    private fun handleIntent(intent: Intent?, navController: NavHostController) {
+        when (intent?.action) {
+            Constants.ACTION_SHOW_TAP_SCREEN -> {
+                navController.navigate("tap_count") {
+                    // Optional: Pop up to the start destination to avoid building up a large stack of destinations
+                    popUpTo("cap_count") {
+                        saveState = true
+                    }
+                    // Avoid multiple copies of the same destination
+                    launchSingleTop = true
+                    // Restore state when reselecting a previously selected item
+                    restoreState = true
+                }
+            }
+        }
+    }
+
 
     @Composable
     fun BottomNavIconStyle(
@@ -270,7 +309,7 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalPermissionsApi::class)
     @Composable
-    fun Permission(){
+    fun Permission1(){
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
         var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
@@ -354,6 +393,116 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @OptIn(ExperimentalPermissionsApi::class)
+    @Composable
+    fun Permission() {
+        val context = LocalContext.current
+        val lifecycleOwner = LocalLifecycleOwner.current
+        var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
+        var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
+
+        // Define multiple permissions
+//        val permissions = listOf(
+//            Manifest.permission.CAMERA,
+//            Manifest.permission.POST_NOTIFICATIONS
+//        )
+        val permissions = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+            else -> arrayOf(
+                Manifest.permission.CAMERA
+            )
+        }
+
+        // Create a list of permission states for each permission
+        val permissionStates = permissions.map { permission ->
+            rememberPermissionState(permission)
+        }
+
+        // Permission launcher for manual permission request
+        val permissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+            onResult = { permissionsResult ->
+                permissionsResult.forEach { (permission, isGranted) ->
+                    when {
+                        isGranted -> {
+                            // Permission was granted
+                            Log.i("permission granted", "granted $permission")
+                        }
+                        permissionStates.find { it.permission == permission }?.status?.shouldShowRationale == true -> {
+                            // Permission was denied, but we can ask again
+                            showTemporarilyDeniedDialog = true
+                            Log.i("permission denied", "temporal $permission")
+                        }
+                        else -> {
+                            // Permission permanently denied
+                            showPermanentlyDeniedDialog = true
+                            Log.i("permission denied", "permanent $permission")
+                        }
+                    }
+                }
+            }
+        )
+
+        // Launch permission request on start
+        DisposableEffect(
+            key1 = lifecycleOwner,
+            effect = {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_START) {
+                        // Only launch request if the permissions are not granted
+                        if (permissionStates.any { !it.status.isGranted }) {
+                            permissionLauncher.launch(permissions)
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+        )
+
+        // Show dialog for temporarily denied permissions
+        if (showTemporarilyDeniedDialog) {
+            Common.ShowDialog(
+                titleText = "Permission Required",
+                dialogText = "Please grant the required permissions to use this app.",
+                positiveButtonText = "Grant",
+                negativeButtonText = "Dismiss",
+                confirmButtonClick = {
+                    showTemporarilyDeniedDialog = false
+                    permissionLauncher.launch(permissions) // Relaunch permission request
+                },
+                dismissButtonClick = {
+                    showTemporarilyDeniedDialog = false
+                }
+            )
+        }
+
+        // Show dialog for permanently denied permissions
+        if (showPermanentlyDeniedDialog) {
+            Common.ShowDialog(
+                titleText = "Permission Required",
+                dialogText = "Permissions are required for this app to work. You can go to settings and manually grant them.",
+                positiveButtonText = "Go to Settings",
+                negativeButtonText = "Dismiss",
+                confirmButtonClick = {
+                    showPermanentlyDeniedDialog = false
+                },
+                dismissButtonClick = {
+                    showPermanentlyDeniedDialog = false
+                }
+            )
+        }
+    }
+
 
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

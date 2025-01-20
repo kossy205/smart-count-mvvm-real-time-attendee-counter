@@ -2,9 +2,6 @@ package com.kosiso.smartcount.ui.uiScreens
 
 import android.content.Intent
 import android.util.Log
-import android.view.KeyEvent
-import android.view.View
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,22 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -43,10 +34,8 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.layoutId
-import androidx.core.content.ContentProviderCompat.requireContext
 import com.kosiso.smartcount.R
 import com.kosiso.smartcount.TapCountForeground
-import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
@@ -118,12 +107,19 @@ fun TapCountScreen(mainViewModel: MainViewModel){
 @Composable
 private fun SendCommandToService(action: String){
     val context = LocalContext.current
-    Intent(context, TapCountForeground::class.java).also{
-        it.action = action
-        // this starts the service
-        // while the "startForeground(id.notification)" is what makes or promote it to a foreground
-        context.startService(it)
+    LaunchedEffect(key1 = action) {
+        Log.i("send command", "works")
+        Intent(context, TapCountForeground::class.java).also{
+            Log.i("send command 1", "works")
+            it.action = action
+            // this starts the service
+            // while the "startForeground(id.notification)" is what makes or promote it to a foreground
+            context.startService(it)
+            Log.i("send command 2", "works")
+        }
+        Log.i("send command 3", "works")
     }
+
 }
 
 

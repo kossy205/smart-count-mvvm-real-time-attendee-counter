@@ -11,8 +11,10 @@ import android.media.AudioManager
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.view.KeyEvent
+import androidx.compose.runtime.collectAsState
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.Observer
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,7 +35,6 @@ class TapCountForeground: LifecycleService() {
     @Inject lateinit var mainRepository: MainRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
-    private lateinit var volumeReceiver: BroadcastReceiver
 
     override fun onCreate() {
         super.onCreate()
@@ -60,10 +61,13 @@ class TapCountForeground: LifecycleService() {
     private fun startForegroundService(){
         Log.i("service 1","start service")
 
+        val displayCount = mainRepository.count.value
+
         createNotificationChannel()
-        val notification = buildNotification(0)
+        val notification = buildNotification(displayCount)
 
         startForeground(Constants.NOTIFICATION_ID, notification)
+        Log.i("service 2","start service")
     }
 
     private fun createNotificationChannel(){
