@@ -12,7 +12,6 @@ class MainRepoImpl(): MainRepository {
     override fun increment(){
         _count.value = _count.value + 1
         Log.i("count increase", "${count}")
-//        return _count.value
     }
 
     override fun decrement(){
@@ -25,10 +24,6 @@ class MainRepoImpl(): MainRepository {
             }
         }
         Log.i("count decrease", "${count}")
-//        return _count.value
     }
 
-//    override fun updateCount(callback: (Int) -> Unit) {
-//        callback(count.value)
-//    }
 }

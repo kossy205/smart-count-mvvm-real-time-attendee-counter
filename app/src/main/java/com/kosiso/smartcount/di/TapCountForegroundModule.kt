@@ -38,7 +38,6 @@ object TapCountForegroundModule {
             .setSmallIcon(R.drawable.ic_capture1)
             .setContentTitle("Smart Count")
             .setContentIntent(pendingIntent)
-
     }
 
     @ServiceScoped

@@ -108,6 +108,9 @@ dependencies {
     // lifecycle service
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
 
+    implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
+
+
     //media session
     implementation ("androidx.media:media:1.5.0")
 
