@@ -43,11 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -67,9 +65,9 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
-import com.kosiso.smartcount.ui.utils.Custom4SidedShape
+import com.kosiso.smartcount.ui.ui_utils.Custom4SidedShape
 import com.kosiso.smartcount.ui.theme.BackgroundColor
-import com.kosiso.smartcount.ui.utils.Common
+import com.kosiso.smartcount.ui.ui_utils.Common
 import kotlin.math.abs
 import com.kosiso.smartcount.R
 import com.kosiso.smartcount.ui.theme.Black
@@ -179,7 +177,7 @@ private fun CameraPreview(
     // Image analysis setup
     val imageAnalysis = remember {
         ImageAnalysis.Builder()
-            .setTargetResolution(Size(380, 400)) // Resolution of the frames
+            .setTargetResolution(Size(400, 400)) // Resolution of the frames
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // Drop old frames
             .build()
     }
@@ -269,7 +267,7 @@ private fun CropCameraPreviewSection() {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(customShape)
-            .height(420.dp)
+            .height(600.dp)
             .fillMaxWidth()
             .background(Color.Green)
     ){

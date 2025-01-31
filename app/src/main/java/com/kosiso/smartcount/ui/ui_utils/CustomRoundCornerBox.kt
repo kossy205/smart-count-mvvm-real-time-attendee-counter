@@ -1,6 +1,5 @@
-package com.kosiso.smartcount.ui.utils
+package com.kosiso.smartcount.ui.ui_utils
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline

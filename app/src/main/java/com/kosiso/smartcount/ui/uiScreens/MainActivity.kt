@@ -2,11 +2,8 @@ package com.kosiso.smartcount.ui.uiScreens
 
 
 import android.Manifest
-import android.Manifest.permission
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.http.SslCertificate.restoreState
-import android.net.http.SslCertificate.saveState
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -14,13 +11,11 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -48,8 +43,6 @@ import androidx.navigation.compose.rememberNavController
 import java.util.UUID
 
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,16 +53,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.kosiso.smartcount.ui.menu.BottomNavItem
-import com.kosiso.smartcount.ui.utils.Common
+import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.R
-import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
@@ -187,8 +177,7 @@ class MainActivity : ComponentActivity() {
                 Log.i("Home 1 screen Clicked", "Home 1 screen Clicked")
             }
             composable("counts"){
-                // Home 2 Screen
-
+                CountHistoryScreen(mainViewModel)
                 Common.ShowSnackBar(
                     snackBarHostState,
                     "Home 2 screen Clicked",
