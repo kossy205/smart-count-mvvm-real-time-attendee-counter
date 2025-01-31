@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.kosiso.smartcount.ui.utils.Custom4SidedShape
+import com.kosiso.smartcount.ui.ui_utils.Custom4SidedShape
 import kotlin.math.abs
 
 class CodeArchieve {

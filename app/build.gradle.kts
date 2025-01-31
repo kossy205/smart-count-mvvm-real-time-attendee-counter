@@ -96,8 +96,6 @@ dependencies {
     // Kotlin Coroutines for ViewModel and StateFlow
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
-
-
     // Hilt dependencies
     implementation ("com.google.dagger:hilt-android:2.48.1")
     kapt ("com.google.dagger:hilt-compiler:2.48.1")
@@ -110,8 +108,13 @@ dependencies {
 
     implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
 
-
     //media session
     implementation ("androidx.media:media:1.5.0")
+
+    // Room
+    implementation ("androidx.room:room-runtime:2.6.1")
+    kapt ("androidx.room:room-compiler:2.6.1")
+    // Coroutines support for Room
+    implementation ("androidx.room:room-ktx:2.6.1")
 
 }

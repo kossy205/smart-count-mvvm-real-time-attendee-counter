@@ -1,7 +1,9 @@
 package com.kosiso.smartcount.ui.uiScreens
 
 import android.content.Intent
+import android.text.format.DateUtils
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,10 +17,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,25 +40,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.layoutId
 import com.kosiso.smartcount.R
 import com.kosiso.smartcount.TapCountForeground
+import com.kosiso.smartcount.database.models.Count
+import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
 import com.kosiso.smartcount.ui.theme.onest
-import com.kosiso.smartcount.ui.utils.Common
+import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.utils.Constants
 import com.kosiso.smartcount.viewmodels.MainViewModel
+import java.sql.Timestamp
+import java.util.Date
 
 
 @Preview(showBackground = true)
 @Composable
 private fun Preview(){
-//    TapCountScreen(mainViewModel = MainViewModel())
+//    TapCountScreen(mainViewModel = MainViewModel(
+//        mainRepository = MainRepoImpl(
+//            countDao =
+//        )
+//    ))
+
+    OutlinedTextField(
+        value = "textInput",
+        onValueChange = {},
+        placeholder = {
+            Text(
+                text = "Sunday Combined Service",
+                style = TextStyle(
+                    color = Black.copy(alpha = 0.4f),
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                )
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                White,
+                shape = RoundedCornerShape(12.dp)
+            ),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = Black.copy(alpha = 0.2f),
+            focusedBorderColor = Pink,
+        ),
+        shape = RoundedCornerShape(12.dp)
+    )
 }
 
 
@@ -95,7 +140,7 @@ fun TapCountScreen(mainViewModel: MainViewModel){
             constraintSet = constraints,
             modifier = Modifier.fillMaxSize()
         ){
-            TopIconSection()
+            TopIconSection(mainViewModel)
 
             CountDetailsSection(mainViewModel)
 
@@ -124,7 +169,7 @@ private fun SendCommandToService(action: String){
 
 
 @Composable
-private fun TopIconSection(){
+private fun TopIconSection(mainViewModel: MainViewModel){
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,11 +184,11 @@ private fun TopIconSection(){
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Common.IconButtonDesign(
-                iconId = R.drawable.ic_arrange1,
+                iconId = R.drawable.ic_reset_bold,
                 iconColor = White,
                 backgroundColor = Pink,
                 onIconClick = {
-
+                    mainViewModel.reset()
                 }
             )
 
@@ -258,9 +303,41 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
 }
 
 
-
 @Composable
 private fun CountButtonsSection(mainViewModel: MainViewModel){
+
+    var showDialog by remember { mutableStateOf(false) }
+    var textInput by remember { mutableStateOf("") }
+    val displayedCount = mainViewModel.count.collectAsState(initial = 0).value
+    val context = LocalContext.current
+
+    val countHistory = Count(
+        count = displayedCount,
+        countName = "$textInput",
+        countType = "Individual"
+    )
+
+
+    if (showDialog) {
+        if (displayedCount > 0) {
+            ShowCustomDialog(
+                onDismiss = { showDialog = false },
+                cancelButton = {},
+                confirmButton = {
+                    mainViewModel.insertCount(countHistory)
+                    showDialog = false
+                },
+                textInput = textInput,
+                onTextInputChange = { textInput = it }
+            )
+        } else {
+            LaunchedEffect(Unit) {
+                showDialog = false
+                Toast.makeText(context, "Count must be greater than 0", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -274,11 +351,11 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
             verticalAlignment = Alignment.CenterVertically
         ){
             Common.IconButtonDesign(
-                iconId = R.drawable.ic_arrange1,
+                iconId = R.drawable.ic_save,
                 iconColor = White,
                 backgroundColor = Pink,
                 onIconClick = {
-
+                    showDialog = true
                 }
             )
         }
@@ -298,8 +375,8 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                     .weight(0.3f)
                     .height(50.dp),
                 shape = RoundedCornerShape(
-                    topStart = 10.dp,
-                    bottomStart = 10.dp,
+                    topStart = 12.dp,
+                    bottomStart = 12.dp,
                     topEnd = 0.dp,
                     bottomEnd = 0.dp
                 ),
@@ -327,8 +404,8 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                 shape = RoundedCornerShape(
                     topStart = 0.dp,
                     bottomStart = 0.dp,
-                    topEnd = 10.dp,
-                    bottomEnd = 10.dp
+                    topEnd = 12.dp,
+                    bottomEnd = 12.dp
                 ),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Pink
@@ -341,6 +418,122 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                     modifier = Modifier.size(24.dp)
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShowCustomDialog(
+    onDismiss: () -> Unit,
+    cancelButton: () -> Unit,
+    confirmButton: () -> Unit,
+    textInput: String,
+    onTextInputChange: (String) -> Unit
+){
+    Dialog(onDismissRequest = onDismiss){
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface
+        ){
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Count Name",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = textInput,
+                    onValueChange = onTextInputChange,
+                    placeholder = {
+                        Text(
+                            text = "Sunday Combined Service",
+                            style = TextStyle(
+                                color = Black.copy(alpha = 0.4f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 15.sp
+                            )
+                        )
+                    },
+                    textStyle = TextStyle(
+                        color = Color.Black,
+                        fontSize = 15.sp,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Black.copy(alpha = 0.2f),
+                        focusedBorderColor = Pink,
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.Bottom
+                ){
+
+                    TextButton(
+                        onClick = cancelButton
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = TextStyle(
+                                color = Black,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    TextButton(
+                        onClick = confirmButton
+                    ) {
+                        Text(
+                            text = "Save",
+                            style = TextStyle(
+                                color = Pink,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                }
+
+            }
+
         }
     }
 }
