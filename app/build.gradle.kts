@@ -82,8 +82,8 @@ dependencies {
     implementation ("co.yml:ycharts:2.1.0")
 
 //    Google ML Kit Face detection
-//    implementation ("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
-    implementation ("com.google.mlkit:face-detection:16.1.7")
+    implementation ("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
+//    implementation ("com.google.mlkit:face-detection:16.1.7")
 
     implementation ("androidx.constraintlayout:constraintlayout-compose:1.1.0")
 

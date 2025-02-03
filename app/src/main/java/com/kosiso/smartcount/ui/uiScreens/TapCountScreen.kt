@@ -322,7 +322,7 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
         if (displayedCount > 0) {
             ShowCustomDialog(
                 onDismiss = { showDialog = false },
-                cancelButton = {},
+                cancelButton = { showDialog = false },
                 confirmButton = {
                     mainViewModel.insertCount(countHistory)
                     showDialog = false

@@ -6,8 +6,10 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.util.Log
 import android.view.KeyEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -82,10 +84,19 @@ class MainActivity : ComponentActivity() {
     val mainViewModel: MainViewModel by viewModels()
     private var navControllerState: NavHostController? = null
 
+
+    private lateinit var powerManager: PowerManager
+    private lateinit var wakeLock: PowerManager.WakeLock
+
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // Get the PowerManager system service
+            powerManager = getSystemService(POWER_SERVICE) as PowerManager
+            // Create a WakeLock with the screen flag
+            wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "MyApp::PreventScreenOff")
 
             Permission()
 
@@ -495,6 +506,7 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+
         if (event?.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
                 KeyEvent.KEYCODE_VOLUME_UP -> {
@@ -505,6 +517,11 @@ class MainActivity : ComponentActivity() {
                     mainViewModel.decrement()
                     return true
                 }
+            }
+            if (!wakeLock.isHeld) {
+                wakeLock.acquire()
+                Log.i("Volume button pressed, keeping screen on", "Volume button pressed, keeping screen on")
+                return true
             }
         }
         return super.onKeyDown(keyCode, event)

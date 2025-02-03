@@ -191,8 +191,8 @@ fun SwipeToDelete(
                 )
             }
         },
-        enableDismissFromStartToEnd = false, // Disable right swipe
-        enableDismissFromEndToStart = true   // Enable left swipe
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
     ) {
         countItem()
     }

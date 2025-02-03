@@ -267,7 +267,7 @@ private fun CropCameraPreviewSection() {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(customShape)
-            .height(600.dp)
+            .height(460.dp)
             .fillMaxWidth()
             .background(Color.Green)
     ){
