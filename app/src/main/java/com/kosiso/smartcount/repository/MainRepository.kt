@@ -13,9 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface MainRepository {
-//    val count: LiveData<Int>
     val count: StateFlow<Int>
-//    val allCountList: Flow<List<Count>>
+
     fun increment()
     fun decrement()
     fun resetCount()
