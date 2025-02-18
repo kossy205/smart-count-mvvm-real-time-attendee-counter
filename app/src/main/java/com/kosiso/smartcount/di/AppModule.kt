@@ -2,6 +2,8 @@ package com.kosiso.smartcount.di
 
 import android.content.Context
 import androidx.room.Room
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.kosiso.smartcount.database.CountDao
 import com.kosiso.smartcount.database.RoomDatabase
 import com.kosiso.smartcount.repository.MainRepoImpl
@@ -41,5 +43,13 @@ object AppModule {
     fun provideMainRepository(countDao: CountDao): MainRepository{
         return MainRepoImpl(countDao)
     }
+
+    @Singleton
+    @Provides
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Singleton
+    @Provides
+    fun provideFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 
 }
