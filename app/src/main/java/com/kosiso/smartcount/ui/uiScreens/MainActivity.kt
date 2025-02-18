@@ -59,6 +59,8 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.kosiso.smartcount.ui.menu.BottomNavItem
 import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.R
@@ -307,92 +309,92 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @OptIn(ExperimentalPermissionsApi::class)
-    @Composable
-    fun Permission1(){
-        val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
-        var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
-        var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
-
-        val permissionState = rememberPermissionState(
-            Manifest.permission.CAMERA
-        )
-
-        // Permission launcher for manual permission request
-        val permissionLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission(),
-            onResult = { isGranted ->
-                when {
-                    isGranted -> {
-                        // Permission was granted
-                        Log.i("permission granted", "granted ${permissionState.status} and $isGranted")
-                    }
-                    permissionState.status.shouldShowRationale -> {
-                        // Permission was denied, but we can ask again
-                        showTemporarilyDeniedDialog = true
-                        Log.i("permission denied", "temporal ${permissionState.status.shouldShowRationale}")
-                    }
-                    !permissionState.status.shouldShowRationale && !isGranted-> {
-                        // Permission permanently denied
-                        showPermanentlyDeniedDialog = true
-                        Log.i("permission denied", "permanent ${!permissionState.status.shouldShowRationale} and ${!permissionState.status.isGranted}")
-                    }
-                }
-            }
-        )
-
-        // Launch permission request on start
-        DisposableEffect(
-            key1 = lifecycleOwner,
-            effect = {
-                val observer = LifecycleEventObserver { _, event ->
-                    if (event == Lifecycle.Event.ON_START) {
-                        // Only launch request if the permission is not granted
-                        if (!permissionState.status.isGranted) {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
-                }
-                lifecycleOwner.lifecycle.addObserver(observer)
-
-                onDispose {
-                    lifecycleOwner.lifecycle.removeObserver(observer)
-                }
-            }
-        )
-
-
-        if(showTemporarilyDeniedDialog){
-            Common.ShowDialog(
-                titleText = "Camera Permission",
-                dialogText = "Pls grant Camera permission to use this app.",
-                positiveButtonText = "Grant",
-                negativeButtonText = "Dismiss",
-                confirmButtonClick = {
-                    showTemporarilyDeniedDialog = false
-                    permissionLauncher.launch(Manifest.permission.CAMERA)
-                },
-                dismissButtonClick = {
-                    showTemporarilyDeniedDialog = false
-                }
-            )
-        }
-        if(showPermanentlyDeniedDialog){
-            Common.ShowDialog(
-                titleText = "Camera Permission",
-                dialogText = "Camara permission is required for this app to work. You can go to settings and manually grant permission.",
-                positiveButtonText = "Go to settings",
-                negativeButtonText = "Dismiss",
-                confirmButtonClick = {
-                    showPermanentlyDeniedDialog = false
-                },
-                dismissButtonClick = {
-                    showPermanentlyDeniedDialog = false
-                }
-            )
-        }
-    }
+//    @OptIn(ExperimentalPermissionsApi::class)
+//    @Composable
+//    fun Permission1(){
+//        val context = LocalContext.current
+//        val lifecycleOwner = LocalLifecycleOwner.current
+//        var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
+//        var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
+//
+//        val permissionState = rememberPermissionState(
+//            Manifest.permission.CAMERA
+//        )
+//
+//        // Permission launcher for manual permission request
+//        val permissionLauncher = rememberLauncherForActivityResult(
+//            contract = ActivityResultContracts.RequestPermission(),
+//            onResult = { isGranted ->
+//                when {
+//                    isGranted -> {
+//                        // Permission was granted
+//                        Log.i("permission granted", "granted ${permissionState.status} and $isGranted")
+//                    }
+//                    permissionState.status.shouldShowRationale -> {
+//                        // Permission was denied, but we can ask again
+//                        showTemporarilyDeniedDialog = true
+//                        Log.i("permission denied", "temporal ${permissionState.status.shouldShowRationale}")
+//                    }
+//                    !permissionState.status.shouldShowRationale && !isGranted-> {
+//                        // Permission permanently denied
+//                        showPermanentlyDeniedDialog = true
+//                        Log.i("permission denied", "permanent ${!permissionState.status.shouldShowRationale} and ${!permissionState.status.isGranted}")
+//                    }
+//                }
+//            }
+//        )
+//
+//        // Launch permission request on start
+//        DisposableEffect(
+//            key1 = lifecycleOwner,
+//            effect = {
+//                val observer = LifecycleEventObserver { _, event ->
+//                    if (event == Lifecycle.Event.ON_START) {
+//                        // Only launch request if the permission is not granted
+//                        if (!permissionState.status.isGranted) {
+//                            permissionLauncher.launch(Manifest.permission.CAMERA)
+//                        }
+//                    }
+//                }
+//                lifecycleOwner.lifecycle.addObserver(observer)
+//
+//                onDispose {
+//                    lifecycleOwner.lifecycle.removeObserver(observer)
+//                }
+//            }
+//        )
+//
+//
+//        if(showTemporarilyDeniedDialog){
+//            Common.ShowDialog(
+//                titleText = "Camera Permission",
+//                dialogText = "Pls grant Camera permission to use this app.",
+//                positiveButtonText = "Grant",
+//                negativeButtonText = "Dismiss",
+//                confirmButtonClick = {
+//                    showTemporarilyDeniedDialog = false
+//                    permissionLauncher.launch(Manifest.permission.CAMERA)
+//                },
+//                dismissButtonClick = {
+//                    showTemporarilyDeniedDialog = false
+//                }
+//            )
+//        }
+//        if(showPermanentlyDeniedDialog){
+//            Common.ShowDialog(
+//                titleText = "Camera Permission",
+//                dialogText = "Camara permission is required for this app to work. You can go to settings and manually grant permission.",
+//                positiveButtonText = "Go to settings",
+//                negativeButtonText = "Dismiss",
+//                confirmButtonClick = {
+//                    showPermanentlyDeniedDialog = false
+//                },
+//                dismissButtonClick = {
+//                    showPermanentlyDeniedDialog = false
+//                }
+//            )
+//        }
+//    }
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -526,6 +528,5 @@ class MainActivity : ComponentActivity() {
         }
         return super.onKeyDown(keyCode, event)
     }
-
 
 }
