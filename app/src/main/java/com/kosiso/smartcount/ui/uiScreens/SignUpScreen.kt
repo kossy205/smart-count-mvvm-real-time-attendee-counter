@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Error
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Idle
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
@@ -90,8 +92,8 @@ private fun SignUpFieldsSection(
         ""
     )
 
-//    CheckAuthOperationResult(mainViewModel, user)
-//    CheckRegisterOperationResult(onNavigateToLoginScreen, mainViewModel)
+    CheckAuthOperationResult(mainViewModel, user)
+    CheckRegisterOperationResult(onNavigateToLoginScreen, mainViewModel)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -193,20 +195,25 @@ private fun CheckAuthOperationResult(mainViewModel: MainViewModel, user: User){
     val context = LocalContext.current
     val authResult = mainViewModel.authOperationResult.collectAsState()
 
-    when(val result = authResult.value){
-        Loading -> { Log.i("signing up user", "loading") }
+    LaunchedEffect(authResult.value) {
+        when(val result = authResult.value){
+            Idle -> { Log.i("signing up user 1", "idle") }
 
-        is Success -> {
-            mainViewModel.registerNewUserInDB(user)
-            Log.i("signing up user", "success: ${result.data}")
-        }
+            Loading -> { Log.i("signing up user 1", "loading") }
 
-        is Error -> {
-            val errorMessage = result.message
-            Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
-            Log.i("signing up user", errorMessage.toString())
+            is Success -> {
+                mainViewModel.registerNewUserInDB(user)
+                Log.i("signing up user 1", "success: ${result.data}")
+            }
+
+            is Error -> {
+                val errorMessage = result.message
+                Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
+                Log.i("signing up user 1", errorMessage.toString())
+            }
         }
     }
+
 }
 
 @Composable
@@ -217,20 +224,26 @@ private fun CheckRegisterOperationResult(
     val context = LocalContext.current
     val registerResult = mainViewModel.registerOperationResult.collectAsState()
 
-    when(val result = registerResult.value){
-        Loading -> { Log.i("register user", "loading") }
+    LaunchedEffect(registerResult.value) {
+        when(val result = registerResult.value){
 
-        is Success -> {
-            onNavigateToLoginScreen()
-            Log.i("register user", "success: ${result.data}")
-        }
+            Idle -> { Log.i("register user 1", "idle") }
 
-        is Error -> {
-            val errorMessage = result.message
-            Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
-            Log.i("register user", errorMessage.toString())
+            Loading -> { Log.i("register user 1", "loading") }
+
+            is Success -> {
+                onNavigateToLoginScreen()
+                Log.i("register user 1", "success: ${result.data}")
+            }
+
+            is Error -> {
+                val errorMessage = result.message
+                Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
+                Log.i("register user 1", errorMessage.toString())
+            }
         }
     }
+
 }
 
 
