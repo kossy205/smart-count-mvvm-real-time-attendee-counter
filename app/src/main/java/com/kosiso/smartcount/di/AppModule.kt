@@ -40,8 +40,14 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideMainRepository(countDao: CountDao): MainRepository{
-        return MainRepoImpl(countDao)
+    fun provideMainRepository(countDao: CountDao,
+                              firebaseAuth: FirebaseAuth,
+                              firestore: FirebaseFirestore): MainRepository{
+        return MainRepoImpl(
+            countDao,
+            firebaseAuth,
+            firestore
+        )
     }
 
     @Singleton

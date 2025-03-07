@@ -24,6 +24,8 @@ interface MainRepository {
     suspend fun insertCount(count: Count)
     suspend fun deleteCount(countId: Int)
 
+    fun getCurrentUser(): FirebaseUser?
+
     suspend fun signUpUser(email: String, password: String): Result<FirebaseUser>
     suspend fun signInUser(email: String, password: String): Result<FirebaseUser>
     fun signOut()

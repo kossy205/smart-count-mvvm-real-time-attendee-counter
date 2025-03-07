@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.kosiso.smartcount.database.CountDao
 import com.kosiso.smartcount.database.RoomDatabase
@@ -95,7 +96,8 @@ class MainRepoImpl @Inject constructor(
         return try{
             firestore
                 .collection(Constants.USERS)
-                .add(user)
+                .document(getCurrentUser()!!.uid)
+                .set(user, SetOptions.merge())
             Result.success(Unit)
         }catch (e: Exception){
             Result.failure(e)
@@ -106,5 +108,8 @@ class MainRepoImpl @Inject constructor(
         firebaseAuth.signOut()
     }
 
+    override fun getCurrentUser(): FirebaseUser? {
+        return firebaseAuth.currentUser
+    }
 
 }
