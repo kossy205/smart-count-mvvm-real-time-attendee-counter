@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
 
             // Main App (with bottom navigation)
             composable("main_app") {
-                MainApp(navController, mainViewModel)
+                MainApp(mainViewModel)
             }
         }
     }
@@ -149,7 +149,13 @@ class MainActivity : ComponentActivity() {
             route = "auth_flow"
         ) {
             composable("intro_screen") {
-                IntroScreen { navController.navigate("login_screen") }
+
+                IntroScreen(
+                    onNavigateToLoginScreen = {
+                        Log.i("intro btn 1", "pressed")
+                        navController.navigate("login_screen")
+                    }
+                )
             }
             composable("signUp_screen") {
                 SignUpScreen(mainViewModel){ navController.navigate("login_screen") }
@@ -172,7 +178,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MainApp(navController: NavHostController, mainViewModel: MainViewModel){
+    fun MainApp(mainViewModel: MainViewModel){
+        // another nav controller, not same with root. Its unique to MainApp
+        val navController = rememberNavController()
 
         val bottomNavItems = listOf<BottomNavItem>(
             BottomNavItem(

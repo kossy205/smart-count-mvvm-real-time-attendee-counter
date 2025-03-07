@@ -2,6 +2,7 @@ package com.kosiso.smartcount.ui.uiScreens
 
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -61,7 +63,10 @@ private fun Preview(){
 }
 
 @Composable
-fun SignUpScreen(mainViewModel: MainViewModel, onNavigateToLoginScreen: ()-> Unit){
+fun SignUpScreen(
+    mainViewModel: MainViewModel,
+    onNavigateToLoginScreen: ()-> Unit
+){
     SignUpFieldsSection(mainViewModel, onNavigateToLoginScreen)
 }
 
@@ -85,8 +90,8 @@ private fun SignUpFieldsSection(
         ""
     )
 
-    CheckAuthOperationResult(mainViewModel, user)
-    CheckRegisterOperationResult(onNavigateToLoginScreen, mainViewModel)
+//    CheckAuthOperationResult(mainViewModel, user)
+//    CheckRegisterOperationResult(onNavigateToLoginScreen, mainViewModel)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -176,22 +181,20 @@ private fun SignUpFieldsSection(
                     )
                 },
                 goToLoginScreen = {
-                    onNavigateToLoginScreen
+                    onNavigateToLoginScreen()
                 }
             )
-
         }
     }
-
-
 }
 
 @Composable
 private fun CheckAuthOperationResult(mainViewModel: MainViewModel, user: User){
+    val context = LocalContext.current
     val authResult = mainViewModel.authOperationResult.collectAsState()
 
     when(val result = authResult.value){
-        is Loading -> { Log.i("signing up user", "loading") }
+        Loading -> { Log.i("signing up user", "loading") }
 
         is Success -> {
             mainViewModel.registerNewUserInDB(user)
@@ -200,6 +203,7 @@ private fun CheckAuthOperationResult(mainViewModel: MainViewModel, user: User){
 
         is Error -> {
             val errorMessage = result.message
+            Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
             Log.i("signing up user", errorMessage.toString())
         }
     }
@@ -210,18 +214,20 @@ private fun CheckRegisterOperationResult(
     onNavigateToLoginScreen: () -> Unit,
     mainViewModel: MainViewModel
 ){
+    val context = LocalContext.current
     val registerResult = mainViewModel.registerOperationResult.collectAsState()
 
     when(val result = registerResult.value){
-        is Loading -> { Log.i("register user", "loading") }
+        Loading -> { Log.i("register user", "loading") }
 
         is Success -> {
-            onNavigateToLoginScreen
+            onNavigateToLoginScreen()
             Log.i("register user", "success: ${result.data}")
         }
 
         is Error -> {
             val errorMessage = result.message
+            Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
             Log.i("register user", errorMessage.toString())
         }
     }
@@ -419,7 +425,7 @@ private fun ButtonSection(
     ){
         Button(
             onClick = {
-                signUpUser
+                signUpUser()
             },
             modifier = Modifier
                 .height(50.dp)
@@ -476,7 +482,7 @@ private fun ButtonSection(
                 ),
                 modifier = Modifier
                     .clickable{
-                        goToLoginScreen
+                        goToLoginScreen()
                     }
             )
         }
