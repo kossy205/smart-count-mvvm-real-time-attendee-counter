@@ -55,9 +55,11 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             val signUpResult = mainRepository.signUpUser(email, password)
             signUpResult.onSuccess {firebaseUser->
                 _authOperationResult.value = MainOperationState.Success(firebaseUser)
+                Log.i("signing up user", "success")
             }
             signUpResult.onFailure {
                 _authOperationResult.value = MainOperationState.Error(it.message.toString())
+                Log.i("signing up user", "errorMessage: ${it}")
             }
         }
     }
@@ -67,9 +69,11 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
              val signInResult = mainRepository.signInUser(email, password)
              signInResult.onSuccess {firebaseUser->
                  _authOperationResult.value = MainOperationState.Success(firebaseUser)
+                 Log.i("logging in user", "success")
              }
              signInResult.onFailure {
                  _authOperationResult.value = MainOperationState.Error(it.message.toString())
+                 Log.i("logging in user", "errorMessage: ${it}")
              }
          }
      }

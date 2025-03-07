@@ -1,6 +1,7 @@
 package com.kosiso.smartcount.ui.uiScreens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -101,7 +104,6 @@ private fun LoginFieldsSection(
                 .layoutId("signUp_Fields_section")
         ) {
 
-
             Text(
                 buildAnnotatedString {
                     withStyle(
@@ -158,9 +160,7 @@ private fun LoginFieldsSection(
                         passwordInput
                     )
                 },
-                goToSignUpScreen = {
-                    onNavigateToSignUpScreen
-                }
+                goToSignUpScreen = onNavigateToSignUpScreen
             )
 
         }
@@ -172,21 +172,26 @@ private fun CheckAuthOperationResult(
     mainViewModel: MainViewModel,
     onNavigateToMainScreen: () -> Unit
 ){
+    val context = LocalContext.current
     val authResult = mainViewModel.authOperationResult.collectAsState()
 
-    when(val result = authResult.value){
-        is Loading -> { Log.i("logging in user", "loading") }
+//    LaunchedEffect(authResult) {
+        when(val result = authResult.value){
+            Loading -> { Log.i("logging in user", "loading") }
 
-        is Success -> {
-            onNavigateToMainScreen
-            Log.i("logging in user", "success: ${result.data}")
-        }
+            is Success -> {
+                onNavigateToMainScreen()
+                Log.i("logging in user", "success: ${result.data}")
+            }
 
-        is MainOperationState.Error -> {
-            val errorMessage = result.message
-            Log.i("logging in user", errorMessage.toString())
+            is MainOperationState.Error -> {
+                val errorMessage = result.message
+                Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
+                Log.i("logging in user", errorMessage.toString())
+            }
         }
-    }
+//    }
+
 }
 
 @Composable
@@ -290,7 +295,7 @@ private fun ButtonSection(
     ){
         Button(
             onClick = {
-                loginUser
+                loginUser()
             },
             modifier = Modifier
                 .height(50.dp)
@@ -347,7 +352,7 @@ private fun ButtonSection(
                 ),
                 modifier = Modifier
                     .clickable{
-                        goToSignUpScreen
+                        goToSignUpScreen()
                     }
             )
         }
