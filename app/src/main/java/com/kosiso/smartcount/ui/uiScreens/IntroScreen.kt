@@ -52,7 +52,7 @@ fun IntroScreen(onNavigateToLoginScreen: ()-> Unit){
             )
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Button(
             onClick = {
