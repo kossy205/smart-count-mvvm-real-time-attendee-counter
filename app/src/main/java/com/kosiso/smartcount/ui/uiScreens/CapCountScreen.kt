@@ -83,11 +83,11 @@ import androidx.compose.ui.tooling.preview.Preview as ComposePreview
 private var currentFaceCount = mutableStateOf(0)
 
 
-@ComposePreview(showBackground = true)
-@Composable
-private fun Preview(){
-    CountContentSection()
-}
+//@ComposePreview(showBackground = true)
+//@Composable
+//private fun Preview(){
+//    CountContentSection()
+//}
 
 
 @Composable

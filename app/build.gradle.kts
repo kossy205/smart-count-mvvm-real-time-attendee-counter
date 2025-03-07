@@ -85,6 +85,15 @@ dependencies {
     implementation("androidx.camera:camera-view:$cameraxVersion")
     implementation("androidx.camera:camera-extensions:$cameraxVersion")
 
+    // Guava dependency for ListenableFuture
+    implementation ("com.google.guava:guava:31.0.1-android")
+
+    // Required if you're using Java 8+
+    implementation ("androidx.concurrent:concurrent-futures:1.1.0")
+
+
+
+
     //charts
     implementation ("co.yml:ycharts:2.1.0")
 

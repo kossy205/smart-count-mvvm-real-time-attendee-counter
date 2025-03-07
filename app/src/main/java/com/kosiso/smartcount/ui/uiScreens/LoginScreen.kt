@@ -1,6 +1,5 @@
 package com.kosiso.smartcount.ui.uiScreens
 
-
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,7 +45,6 @@ import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
-import com.kosiso.smartcount.ui.screen_states.MainOperationState.Error
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
@@ -54,39 +52,38 @@ import com.kosiso.smartcount.ui.theme.White
 import com.kosiso.smartcount.ui.theme.onest
 import com.kosiso.smartcount.viewmodels.MainViewModel
 
+
 @Preview(showBackground = true)
 @Composable
 private fun Preview(){
-//    SignUpScreen(mainViewModel = MainViewModel, onNavigateToLoginScreen = {})
+//    LoginScreen(mainViewModel = MainViewModel, onNavigateToMainScreen = {}, onNavigationToSignUpScreen = {})
 }
 
 @Composable
-fun SignUpScreen(mainViewModel: MainViewModel, onNavigateToLoginScreen: ()-> Unit){
-    SignUpFieldsSection(mainViewModel, onNavigateToLoginScreen)
-}
-
-@Composable
-private fun SignUpFieldsSection(
+fun LoginScreen(
     mainViewModel: MainViewModel,
-    onNavigateToLoginScreen: ()-> Unit
+    onNavigateToMainScreen: ()-> Unit,
+    onNavigationToSignUpScreen: ()-> Unit
+){
+    LoginFieldsSection(
+        mainViewModel,
+        onNavigateToMainScreen,
+        onNavigationToSignUpScreen
+    )
+}
+
+
+@Composable
+private fun LoginFieldsSection(
+    mainViewModel: MainViewModel,
+    onNavigateToMainScreen: ()-> Unit,
+    onNavigateToSignUpScreen: ()-> Unit
 ){
 
-    var textInput by remember { mutableStateOf("") }
     var emailInput by remember { mutableStateOf("") }
-    var phoneInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
 
-    val user: User = User(
-        mainViewModel.getCurrentUser()?.uid.toString(),
-        textInput,
-        phoneInput,
-        emailInput,
-        passwordInput,
-        ""
-    )
-
-    CheckAuthOperationResult(mainViewModel, user)
-    CheckRegisterOperationResult(onNavigateToLoginScreen, mainViewModel)
+    CheckAuthOperationResult(mainViewModel, onNavigateToMainScreen)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -140,23 +137,9 @@ private fun SignUpFieldsSection(
 
             Spacer(modifier  = Modifier.height(30.dp))
 
-            TextArea(
-                textInput = textInput,
-                onTextInputChange = {textInput = it}
-            )
-
-            Spacer(modifier  = Modifier.height(10.dp))
-
             EmailTextArea(
                 emailInput = emailInput,
                 onEmailInputChange = { emailInput = it }
-            )
-
-            Spacer(modifier  = Modifier.height(10.dp))
-
-            PhoneNumberTextArea(
-                phoneInput = phoneInput,
-                onPhoneInputChange = { phoneInput = it }
             )
 
             Spacer(modifier  = Modifier.height(10.dp))
@@ -169,107 +152,41 @@ private fun SignUpFieldsSection(
             Spacer(modifier  = Modifier.height(30.dp))
 
             ButtonSection(
-                signUpUser = {
-                    mainViewModel.signUpNewUser(
+                loginUser = {
+                    mainViewModel.signInUser(
                         emailInput,
                         passwordInput
                     )
                 },
-                goToLoginScreen = {
-                    onNavigateToLoginScreen
+                goToSignUpScreen = {
+                    onNavigateToSignUpScreen
                 }
             )
 
         }
     }
-
-
 }
 
 @Composable
-private fun CheckAuthOperationResult(mainViewModel: MainViewModel, user: User){
+private fun CheckAuthOperationResult(
+    mainViewModel: MainViewModel,
+    onNavigateToMainScreen: () -> Unit
+){
     val authResult = mainViewModel.authOperationResult.collectAsState()
 
     when(val result = authResult.value){
-        is Loading -> { Log.i("signing up user", "loading") }
+        is Loading -> { Log.i("logging in user", "loading") }
 
         is Success -> {
-            mainViewModel.registerNewUserInDB(user)
-            Log.i("signing up user", "success: ${result.data}")
+            onNavigateToMainScreen
+            Log.i("logging in user", "success: ${result.data}")
         }
 
-        is Error -> {
+        is MainOperationState.Error -> {
             val errorMessage = result.message
-            Log.i("signing up user", errorMessage.toString())
+            Log.i("logging in user", errorMessage.toString())
         }
     }
-}
-
-@Composable
-private fun CheckRegisterOperationResult(
-    onNavigateToLoginScreen: () -> Unit,
-    mainViewModel: MainViewModel
-){
-    val registerResult = mainViewModel.registerOperationResult.collectAsState()
-
-    when(val result = registerResult.value){
-        is Loading -> { Log.i("register user", "loading") }
-
-        is Success -> {
-            onNavigateToLoginScreen
-            Log.i("register user", "success: ${result.data}")
-        }
-
-        is Error -> {
-            val errorMessage = result.message
-            Log.i("register user", errorMessage.toString())
-        }
-    }
-}
-
-
-@Composable
-private fun TextArea(
-    textInput: String,
-    onTextInputChange: (String) -> Unit
-){
-    OutlinedTextField(
-        value = textInput,
-        onValueChange = onTextInputChange,
-        placeholder = {
-            Text(
-                text = "name",
-                style = TextStyle(
-                    color = Black.copy(alpha = 0.4f),
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 15.sp
-                )
-            )
-        },
-        textStyle = TextStyle(
-            color = Color.Black,
-            fontSize = 15.sp,
-            fontFamily = onest,
-            fontWeight = FontWeight.Normal
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Color.Transparent,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Black.copy(alpha = 0.5f),
-            focusedBorderColor = Pink,
-        ),
-        shape = RoundedCornerShape(12.dp),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next
-        ),
-        singleLine = true
-    )
 }
 
 @Composable
@@ -313,51 +230,6 @@ private fun EmailTextArea(
             imeAction = ImeAction.Next
         ),
         singleLine = true
-    )
-}
-
-@Composable
-private fun PhoneNumberTextArea(
-    phoneInput: String,
-    onPhoneInputChange: (String) -> Unit
-){
-    OutlinedTextField(
-        value = phoneInput,
-        onValueChange = onPhoneInputChange,
-        placeholder = {
-            Text(
-                text = "+234 123 456 7890",
-                style = TextStyle(
-                    color = Black.copy(alpha = 0.4f),
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 15.sp
-                )
-            )
-        },
-        textStyle = TextStyle(
-            color = Color.Black,
-            fontSize = 15.sp,
-            fontFamily = onest,
-            fontWeight = FontWeight.Normal
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Color.Transparent,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Black.copy(alpha = 0.5f),
-            focusedBorderColor = Pink,
-        ),
-        shape = RoundedCornerShape(12.dp),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Phone,
-            imeAction = ImeAction.Next
-        ),
-        singleLine = true,
-//        visualTransformation = PhoneNumberVisualTransformation()
     )
 }
 
@@ -407,19 +279,18 @@ private fun PasswordTextArea(
 
 @Composable
 private fun ButtonSection(
-    signUpUser: () -> Unit,
-    goToLoginScreen: () -> Unit,
+    loginUser: () -> Unit,
+    goToSignUpScreen: () -> Unit,
 ){
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .layoutId("signUp_button_section")
     ){
         Button(
             onClick = {
-                signUpUser
+                loginUser
             },
             modifier = Modifier
                 .height(50.dp)
@@ -435,7 +306,7 @@ private fun ButtonSection(
             )
         ) {
             Text(
-                text = "Sign Up",
+                text = "Login",
                 style = TextStyle(
                     color = White,
                     fontFamily = onest,
@@ -454,7 +325,7 @@ private fun ButtonSection(
                 .fillMaxWidth()
         ){
             Text(
-                text = "Have an account?",
+                text = "Don't have an account?",
                 style = TextStyle(
                     color = Black,
                     fontFamily = onest,
@@ -466,7 +337,7 @@ private fun ButtonSection(
             Spacer(modifier = Modifier.width(3.dp))
 
             Text(
-                text = "Login here",
+                text = "SignUp here",
                 style = TextStyle(
                     color = Pink,
                     fontFamily = onest,
@@ -476,7 +347,7 @@ private fun ButtonSection(
                 ),
                 modifier = Modifier
                     .clickable{
-                        goToLoginScreen
+                        goToSignUpScreen
                     }
             )
         }

@@ -55,6 +55,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.navigation
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -107,45 +109,9 @@ class MainActivity : ComponentActivity() {
 
             handleIntent(intent, navController)
 
-            val bottomNavItems = listOf<BottomNavItem>(
-                BottomNavItem(
-                    id = UUID.randomUUID().toString(),
-                    name = "CapCount",
-                    route = "cap_count",
-                    icon = R.drawable.ic_capture1
-                ),
-                BottomNavItem(
-                    id = UUID.randomUUID().toString(),
-                    name = "TapCount",
-                    route = "tap_count",
-                    icon = R.drawable.ic_step
-                ),
-                BottomNavItem(
-                    id = UUID.randomUUID().toString(),
-                    name = "Counts",
-                    route = "counts",
-                    icon = R.drawable.ic_arrange1
-                ),
-                BottomNavItem(
-                    id = UUID.randomUUID().toString(),
-                    name = "Profile",
-                    route = "profile",
-                    icon = R.drawable.ic_profile0
-                )
-            )
-            Scaffold(
-                bottomBar = {
-                    BottomNavigationBar(
-                        navItems = bottomNavItems,
-                        navController = navController,
-                        onItemClick = {
-                            navController.navigate(it.route)
-                        }
-                    )
-                }
-            ){
-                Navigation(navController = navController, mainViewModel = mainViewModel)
-            }
+            RootNavigation(navController, mainViewModel)
+
+
 
         }
     }
@@ -154,6 +120,100 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun GreetingPreview() {
 
+    }
+
+
+    @Composable
+    fun RootNavigation(navController: NavHostController, mainViewModel: MainViewModel){
+        NavHost(
+            navController = navController,
+            startDestination = if (isLoggedIn()) "main_app" else "auth_flow" // Replace with auth check
+        ) {
+            // Auth/Intro Flow
+            authNavGraph(navController)
+
+            // Main App (with bottom navigation)
+            composable("main_app") {
+                MainApp(navController, mainViewModel)
+            }
+        }
+    }
+
+    private fun isLoggedIn(): Boolean {
+        return mainViewModel.getCurrentUser() != null
+    }
+
+    fun NavGraphBuilder.authNavGraph(navController: NavController) {
+        navigation(
+            startDestination = "intro_screen",
+            route = "auth_flow"
+        ) {
+            composable("intro_screen") {
+                IntroScreen { navController.navigate("login_screen") }
+            }
+            composable("signUp_screen") {
+                SignUpScreen(mainViewModel){ navController.navigate("login_screen") }
+            }
+            composable("login_screen") {
+                LoginScreen(
+                    // After login, navigate to main app and clear auth backstack
+                    mainViewModel = mainViewModel,
+                    onNavigateToMainScreen = {
+                        navController.navigate("main_app") {
+                            popUpTo("auth_flow") { inclusive = true }
+                        }
+                    },
+                    onNavigationToSignUpScreen = {
+                        navController.navigate("signUp_screen")
+                    }
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun MainApp(navController: NavHostController, mainViewModel: MainViewModel){
+
+        val bottomNavItems = listOf<BottomNavItem>(
+            BottomNavItem(
+                id = UUID.randomUUID().toString(),
+                name = "CapCount",
+                route = "cap_count",
+                icon = R.drawable.ic_capture1
+            ),
+            BottomNavItem(
+                id = UUID.randomUUID().toString(),
+                name = "TapCount",
+                route = "tap_count",
+                icon = R.drawable.ic_step
+            ),
+            BottomNavItem(
+                id = UUID.randomUUID().toString(),
+                name = "Counts",
+                route = "counts",
+                icon = R.drawable.ic_arrange1
+            ),
+            BottomNavItem(
+                id = UUID.randomUUID().toString(),
+                name = "Profile",
+                route = "profile",
+                icon = R.drawable.ic_profile0
+            )
+        )
+
+        Scaffold(
+            bottomBar = {
+                BottomNavigationBar(
+                    navItems = bottomNavItems,
+                    navController = navController,
+                    onItemClick = {
+                        navController.navigate(it.route)
+                    }
+                )
+            }
+        ){
+            Navigation(navController = navController, mainViewModel = mainViewModel)
+        }
     }
 
     @Composable

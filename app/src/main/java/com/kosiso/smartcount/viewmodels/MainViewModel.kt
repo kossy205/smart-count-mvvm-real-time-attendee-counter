@@ -46,7 +46,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
         }
     }
-
     /**
      * Sign up
      */
@@ -86,6 +85,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
 
         }
+    }
+
+    fun getCurrentUser(): FirebaseUser?{
+        return mainRepository.getCurrentUser()
     }
 
 
