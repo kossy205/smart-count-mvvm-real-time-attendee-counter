@@ -22,7 +22,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _roomOperationResult = MutableStateFlow<MainOperationState<List<Count>>>(MainOperationState.Loading)
     val roomOperationResult: StateFlow<MainOperationState<List<Count>>> = _roomOperationResult
 
-    private val _authOperationResult = MutableStateFlow<MainOperationState<FirebaseUser>>(MainOperationState.Loading)
+    private val _authOperationResult = MutableStateFlow<MainOperationState<FirebaseUser>>(MainOperationState.Idle)
     val authOperationResult: StateFlow<MainOperationState<FirebaseUser>> = _authOperationResult
 
     private val _registerOperationResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
@@ -49,6 +49,13 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     /**
      * Sign up
      */
+    fun resetAuthState() {
+        _authOperationResult.value = MainOperationState.Idle
+    }
+    fun resetRegisterState() {
+        _registerOperationResult.value = MainOperationState.Idle
+    }
+
     fun signUpNewUser(email: String, password: String){
         viewModelScope.launch{
             _authOperationResult.value = MainOperationState.Loading

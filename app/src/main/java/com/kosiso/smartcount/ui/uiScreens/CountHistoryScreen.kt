@@ -38,9 +38,11 @@ import androidx.compose.ui.unit.sp
 import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.R
 import com.kosiso.smartcount.database.models.Count
+import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Error
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Idle
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
@@ -110,6 +112,8 @@ private fun CountHistoryList(mainViewModel: MainViewModel){
     ){
         Log.i("show count history", "show")
         when(val result = roomResult.value){
+            Idle -> { Log.i("getting counts", "idle") }
+
             Loading -> { Log.i("getting counts", "loading") }
 
             is Success-> {

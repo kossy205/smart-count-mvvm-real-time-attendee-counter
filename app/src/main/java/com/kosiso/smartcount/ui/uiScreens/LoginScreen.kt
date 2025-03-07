@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Idle
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
 import com.kosiso.smartcount.ui.theme.BackgroundColor
@@ -86,6 +87,9 @@ private fun LoginFieldsSection(
     var emailInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
 
+//    LaunchedEffect(Unit) {
+//        mainViewModel.resetAuthState()
+//    }
     CheckAuthOperationResult(mainViewModel, onNavigateToMainScreen)
 
     Box(
@@ -175,22 +179,24 @@ private fun CheckAuthOperationResult(
     val context = LocalContext.current
     val authResult = mainViewModel.authOperationResult.collectAsState()
 
-//    LaunchedEffect(authResult) {
+    LaunchedEffect(authResult.value) {
         when(val result = authResult.value){
-            Loading -> { Log.i("logging in user", "loading") }
+            Idle -> { Log.i("logging in user 1", "idle") }
+
+            Loading -> { Log.i("logging in user 1", "loading") }
 
             is Success -> {
                 onNavigateToMainScreen()
-                Log.i("logging in user", "success: ${result.data}")
+                Log.i("logging in user 1", "success: ${result.data}")
             }
 
             is MainOperationState.Error -> {
                 val errorMessage = result.message
                 Toast.makeText(context, "Error: ${errorMessage}", Toast.LENGTH_LONG).show()
-                Log.i("logging in user", errorMessage.toString())
+                Log.i("logging in user 1", errorMessage.toString())
             }
         }
-//    }
+    }
 
 }
 
