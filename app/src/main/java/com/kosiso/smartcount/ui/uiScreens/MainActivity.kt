@@ -158,18 +158,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
             composable("signUp_screen") {
-                SignUpScreen(mainViewModel){ navController.navigate("login_screen") }
+                SignUpScreen(mainViewModel){
+                    mainViewModel.resetAuthState()
+                    navController.navigate("login_screen")
+                }
             }
             composable("login_screen") {
                 LoginScreen(
                     // After login, navigate to main app and clear auth backstack
                     mainViewModel = mainViewModel,
                     onNavigateToMainScreen = {
+                        mainViewModel.resetAuthState()
                         navController.navigate("main_app") {
                             popUpTo("auth_flow") { inclusive = true }
                         }
                     },
                     onNavigationToSignUpScreen = {
+                        mainViewModel.resetAuthState()
                         navController.navigate("signUp_screen")
                     }
                 )
