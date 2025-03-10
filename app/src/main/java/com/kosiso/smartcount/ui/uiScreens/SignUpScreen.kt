@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -31,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -46,7 +50,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosiso.smartcount.database.models.User
-import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Error
@@ -175,7 +178,7 @@ private fun SignUpFieldsSection(
 
             Spacer(modifier  = Modifier.height(30.dp))
 
-            ButtonSection(
+            ButtonProgressBarSection(
                 signUpUser = {
                     mainViewModel.signUpNewUser(
                         emailInput,
@@ -184,7 +187,8 @@ private fun SignUpFieldsSection(
                 },
                 goToLoginScreen = {
                     onNavigateToLoginScreen()
-                }
+                },
+                mainViewModel = mainViewModel
             )
         }
     }
@@ -425,10 +429,12 @@ private fun PasswordTextArea(
 }
 
 @Composable
-private fun ButtonSection(
+private fun ButtonProgressBarSection(
     signUpUser: () -> Unit,
     goToLoginScreen: () -> Unit,
+    mainViewModel: MainViewModel
 ){
+
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -436,6 +442,9 @@ private fun ButtonSection(
             .fillMaxWidth()
             .layoutId("signUp_button_section")
     ){
+
+        val authResult by mainViewModel.authOperationResult.collectAsState()
+
         Button(
             onClick = {
                 signUpUser()
@@ -453,15 +462,25 @@ private fun ButtonSection(
                 containerColor = Pink
             )
         ) {
-            Text(
-                text = "Sign Up",
-                style = TextStyle(
+            if(authResult == Loading){
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(30.dp),
                     color = White,
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    strokeCap = StrokeCap.Round
                 )
-            )
+            }else{
+                Text(
+                    text = "Sign Up",
+                    style = TextStyle(
+                        color = White,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -500,4 +519,5 @@ private fun ButtonSection(
             )
         }
     }
+
 }
