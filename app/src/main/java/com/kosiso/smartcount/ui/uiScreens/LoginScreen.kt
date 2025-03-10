@@ -87,9 +87,7 @@ private fun LoginFieldsSection(
     var emailInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
 
-//    LaunchedEffect(Unit) {
-//        mainViewModel.resetAuthState()
-//    }
+
     CheckAuthOperationResult(mainViewModel, onNavigateToMainScreen)
 
     Box(
@@ -186,8 +184,8 @@ private fun CheckAuthOperationResult(
             Loading -> { Log.i("logging in user 1", "loading") }
 
             is Success -> {
-                onNavigateToMainScreen()
                 Log.i("logging in user 1", "success: ${result.data}")
+                onNavigateToMainScreen()
             }
 
             is MainOperationState.Error -> {
@@ -363,4 +361,9 @@ private fun ButtonSection(
             )
         }
     }
+}
+
+
+private fun resetAuthState(mainViewModel: MainViewModel){
+    mainViewModel.resetAuthState()
 }
