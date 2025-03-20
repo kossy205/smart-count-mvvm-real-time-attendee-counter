@@ -5,6 +5,7 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -60,41 +63,10 @@ import java.sql.Timestamp
 import java.util.Date
 
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF00FF00)
 @Composable
 private fun Preview(){
-//    TapCountScreen(mainViewModel = MainViewModel(
-//        mainRepository = MainRepoImpl(
-//            countDao =
-//        )
-//    ))
-
-    OutlinedTextField(
-        value = "textInput",
-        onValueChange = {},
-        placeholder = {
-            Text(
-                text = "Sunday Combined Service",
-                style = TextStyle(
-                    color = Black.copy(alpha = 0.4f),
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
-                )
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                White,
-                shape = RoundedCornerShape(12.dp)
-            ),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Black.copy(alpha = 0.2f),
-            focusedBorderColor = Pink,
-        ),
-        shape = RoundedCornerShape(12.dp)
-    )
+    SessionCountSection()
 }
 
 
@@ -193,15 +165,15 @@ private fun TopIconSection(mainViewModel: MainViewModel){
             )
 
             Row {
-                Common.IconButtonDesign(
-                    iconId = R.drawable.ic_profile0,
-                    iconColor = Black,
-                    backgroundColor = White,
-                    onIconClick = {
-
-                    }
-                )
-                Spacer(modifier = Modifier.width(5.dp))
+//                Common.IconButtonDesign(
+//                    iconId = R.drawable.ic_profile0,
+//                    iconColor = Black,
+//                    backgroundColor = White,
+//                    onIconClick = {
+//
+//                    }
+//                )
+//                Spacer(modifier = Modifier.width(5.dp))
                 Common.IconButtonDesign(
                     iconId = R.drawable.ic_capture1,
                     iconColor = Black,
@@ -534,6 +506,91 @@ private fun ShowCustomDialog(
 
             }
 
+        }
+    }
+}
+
+@Composable
+private fun SessionCountSection(){
+
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+    ){
+        Text(
+            text = "Session Count",
+            style = TextStyle(
+                color = Black,
+                fontFamily = onest,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp
+            ),
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .fillMaxWidth()
+                .background(White)
+                .height(200.dp)
+        ){
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.Start
+            ){
+                Text(
+                    text = "Want to start a session count?",
+                    style = TextStyle(
+                        color = Black.copy(alpha = 0.5f),
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                )
+                Text(
+                    text = "You will be able to count with other users who are online and 200 meters around you.",
+                    style = TextStyle(
+                        color = Black.copy(alpha = 0.4f),
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                )
+                Spacer(modifier =  Modifier.height(10.dp))
+                Button(
+                    onClick = {
+
+                    },
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(20.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    )
+                ) {
+                    Text(
+                        text = "Start",
+                        style = TextStyle(
+                            color = Black.copy(alpha = 0.5f),
+                            fontFamily = onest,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        )
+                    )
+                }
+            }
         }
     }
 }
