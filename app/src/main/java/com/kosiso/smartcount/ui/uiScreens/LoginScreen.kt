@@ -113,24 +113,24 @@ private fun LoginFieldsSection(
                 buildAnnotatedString {
                     withStyle(
                         style = SpanStyle(
-                            color = Black
-                        )
-                    ) {
-                        append("Quickly ")
-                    }
-                    withStyle(
-                        style = SpanStyle(
                             color = Pink
                         )
                     ) {
-                        append("Create")
+                        append("Log in ")
                     }
                     withStyle(
                         style = SpanStyle(
                             color = Black
                         )
                     ) {
-                        append(" \nA New Account")
+                        append("to ")
+                    }
+                    withStyle(
+                        style = SpanStyle(
+                            color = Black
+                        )
+                    ) {
+                        append(" \nyour account")
                     }
                 },
                 style = TextStyle(

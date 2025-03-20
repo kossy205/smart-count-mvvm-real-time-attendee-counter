@@ -110,9 +110,6 @@ class MainActivity : ComponentActivity() {
             handleIntent(intent, navController)
 
             RootNavigation(navController, mainViewModel)
-
-
-
         }
     }
 
@@ -127,7 +124,7 @@ class MainActivity : ComponentActivity() {
     fun RootNavigation(navController: NavHostController, mainViewModel: MainViewModel){
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn()) "main_app" else "auth_flow" // Replace with auth check
+            startDestination = if (isLoggedIn()) "main_app" else "auth_flow"
         ) {
             // Auth/Intro Flow
             authNavGraph(navController)
