@@ -36,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -84,6 +86,7 @@ fun TapCountScreen(mainViewModel: MainViewModel){
     ){
         val constraints = ConstraintSet {
             val topIconSection = createRefFor("top_icon_section")
+            val sessionCountSection = createRefFor("session_count_section")
             val countDetailsSection = createRefFor("count_details_section")
             val countButtonsSection = createRefFor("count_buttons_section")
 
@@ -94,9 +97,17 @@ fun TapCountScreen(mainViewModel: MainViewModel){
             }
 
             constrain(countDetailsSection){
-                top.linkTo(topIconSection.bottom, margin = 70.dp)
+                top.linkTo(topIconSection.bottom, margin = 25.dp)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
+            }
+
+            constrain(sessionCountSection){
+                top.linkTo(countDetailsSection.bottom)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                bottom.linkTo(countButtonsSection.top)
+                verticalBias = 0.8f
             }
 
             constrain(countButtonsSection){
@@ -115,6 +126,8 @@ fun TapCountScreen(mainViewModel: MainViewModel){
             TopIconSection(mainViewModel)
 
             CountDetailsSection(mainViewModel)
+
+            SessionCountSection()
 
             CountButtonsSection(mainViewModel)
         }
@@ -316,10 +329,27 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
             .layoutId("count_buttons_section"),
     ){
 
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth(),
+//            horizontalArrangement = Arrangement.End,
+//            verticalAlignment = Alignment.CenterVertically
+//        ){
+//            Common.IconButtonDesign(
+//                iconId = R.drawable.ic_save,
+//                iconColor = White,
+//                backgroundColor = Pink,
+//                onIconClick = {
+//                    showDialog = true
+//                }
+//            )
+//        }
+//
+//        Spacer(modifier = Modifier.height(50.dp))
+
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ){
             Common.IconButtonDesign(
@@ -328,17 +358,12 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                 backgroundColor = Pink,
                 onIconClick = {
                     showDialog = true
-                }
+                },
+                modifier = Modifier.weight(0.1f)
             )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ){
             Button(
                 onClick = {
                     mainViewModel.decrement()
@@ -371,7 +396,7 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                     mainViewModel.increment()
                 },
                 modifier = Modifier
-                    .weight(0.7f)
+                    .weight(0.6f)
                     .height(50.dp),
                 shape = RoundedCornerShape(
                     topStart = 0.dp,
@@ -512,76 +537,122 @@ private fun ShowCustomDialog(
 
 @Composable
 private fun SessionCountSection(){
-
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .fillMaxWidth()
+            .layoutId("session_count_section")
     ){
-        Text(
-            text = "Session Count",
-            style = TextStyle(
-                color = Black,
-                fontFamily = onest,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp
-            ),
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Box(
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
                 .fillMaxWidth()
-                .background(White)
-                .height(200.dp)
         ){
-            Column(
+//            Text(
+//                text = "Session Count",
+//                style = TextStyle(
+//                    color = Black,
+//                    fontFamily = onest,
+//                    fontWeight = FontWeight.Medium,
+//                    fontSize = 16.sp
+//                ),
+//                modifier = Modifier.align(Alignment.Start)
+//            )
+//            Spacer(modifier = Modifier.height(3.dp))
+            Box(
                 modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
                     .fillMaxWidth()
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.Start
+                    .background(Black)
             ){
-                Text(
-                    text = "Want to start a session count?",
-                    style = TextStyle(
-                        color = Black.copy(alpha = 0.5f),
-                        fontFamily = onest,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
-                    )
-                )
-                Text(
-                    text = "You will be able to count with other users who are online and 200 meters around you.",
-                    style = TextStyle(
-                        color = Black.copy(alpha = 0.4f),
-                        fontFamily = onest,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
-                    )
-                )
-                Spacer(modifier =  Modifier.height(10.dp))
-                Button(
-                    onClick = {
-
-                    },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier
-                        .width(100.dp)
-                        .height(20.dp)
-                        .border(
-                            width = 1.dp,
-                            color = Color.Black,
-                            shape = RoundedCornerShape(10.dp)
-                        ),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ){
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                    ){
+                        Text(
+                            text = "Session Count",
+                            style = TextStyle(
+                                color = White.copy(alpha = 0.8f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            ),
+                            modifier = Modifier.padding(bottom = 7.dp)
+                        )
+                        Text(
+                            text = "Count with other users who are \nonline and 200 meters around you.",
+                            style = TextStyle(
+                                color = White.copy(alpha = 0.6f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp
+                            )
+                        )
+                    }
+
+                    Common.IconButtonDesign(
+                        iconId = R.drawable.ic_play,
+                        iconColor = White,
+                        backgroundColor = White.copy(alpha = 0.2f),
+                        onIconClick = {
+
+                        },
+                        modifier = Modifier
+                            .size(25.dp)
                     )
-                ) {
+                }
+
+            }
+        }
+    }
+}
+@Composable
+private fun SessionCountSection1(){
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .height(250.dp)
+            .layoutId("session_count_section")
+    ){
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+        ){
+            Text(
+                text = "Session Count",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                ),
+                modifier = Modifier.align(Alignment.Start)
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(White)
+            ){
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.Top,
+                ){
                     Text(
-                        text = "Start",
+                        text = "Want to start a session count?",
                         style = TextStyle(
                             color = Black.copy(alpha = 0.5f),
                             fontFamily = onest,
@@ -589,6 +660,40 @@ private fun SessionCountSection(){
                             fontSize = 14.sp
                         )
                     )
+                    Text(
+                        text = "You will be able to count with other users who are online and 200 meters around you.",
+                        style = TextStyle(
+                            color = Black.copy(alpha = 0.4f),
+                            fontFamily = onest,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        )
+                    )
+                    Spacer(modifier =  Modifier.height(10.dp))
+                    Button(
+                        onClick = { /* Add your click action here */ },
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(40.dp)
+                            .border(
+                                width = 1.dp,
+                                color = Black.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(30.dp))
+                            .clip(RoundedCornerShape(30.dp)), // clips the border to match the shape and height of the button
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Text(
+                            text = "Start",
+                            style = TextStyle(
+                                color = Black.copy(alpha = 0.5f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
                 }
             }
         }
