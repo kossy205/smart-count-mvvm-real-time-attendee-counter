@@ -28,6 +28,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _registerOperationResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
     val registerOperationResult: StateFlow<MainOperationState<Unit>> = _registerOperationResult
 
+    private val _onlineStatus = MutableStateFlow<Boolean>(false)
+    val onlineStatus: StateFlow<Boolean> = _onlineStatus
+
 
 
     init {// Launches once when the view model comes live
@@ -129,5 +132,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         viewModelScope.launch{
             mainRepository.deleteCount(countId)
         }
+    }
+
+    fun onlineStatus(isOnline: Boolean){
+        _onlineStatus.value = isOnline
     }
 }

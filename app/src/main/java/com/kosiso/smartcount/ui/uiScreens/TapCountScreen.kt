@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -55,6 +57,7 @@ import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
+import com.kosiso.smartcount.ui.theme.Green
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
 import com.kosiso.smartcount.ui.theme.onest
@@ -155,6 +158,10 @@ private fun SendCommandToService(action: String){
 
 @Composable
 private fun TopIconSection(mainViewModel: MainViewModel){
+
+    val onlineStatusData = mainViewModel.onlineStatus.collectAsState().value
+    var isOnline by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,25 +184,28 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 }
             )
 
-            Row {
-//                Common.IconButtonDesign(
-//                    iconId = R.drawable.ic_profile0,
-//                    iconColor = Black,
-//                    backgroundColor = White,
-//                    onIconClick = {
-//
-//                    }
-//                )
-//                Spacer(modifier = Modifier.width(5.dp))
+            if(onlineStatusData == true){
+                isOnline = true
                 Common.IconButtonDesign(
-                    iconId = R.drawable.ic_capture1,
+                    iconId = R.drawable.ic_online,
+                    iconColor = White,
+                    backgroundColor = Green,
+                    onIconClick = {
+                        mainViewModel.onlineStatus(!isOnline)
+                    }
+                )
+            }else{
+                isOnline = false
+                Common.IconButtonDesign(
+                    iconId = R.drawable.ic_offline,
                     iconColor = Black,
                     backgroundColor = White,
                     onIconClick = {
-
+                        mainViewModel.onlineStatus(!isOnline)
                     }
                 )
             }
+
 
         }
     }
@@ -699,3 +709,101 @@ private fun SessionCountSection1(){
         }
     }
 }
+
+//@Composable
+//private fun ShowAddCountersDialog(
+//    onDismiss: () -> Unit,
+//    cancelButton: () -> Unit,
+//    confirmButton: () -> Unit
+//){
+//    Dialog(onDismissRequest = onDismiss){
+//        Surface(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(16.dp),
+//            shape = MaterialTheme.shapes.medium,
+//            color = MaterialTheme.colorScheme.surface
+//        ){
+//
+//            Column(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(16.dp)
+//            ) {
+//
+//                Text(
+//                    text = "Available Users",
+//                    style = TextStyle(
+//                        color = Black,
+//                        fontFamily = onest,
+//                        fontWeight = FontWeight.Medium,
+//                        fontSize = 16.sp
+//                    )
+//                )
+//
+//                Spacer(modifier = Modifier.height(12.dp))
+//
+//                LazyColumn {
+//                    items(
+//                        items = count,
+//                        key = { it.id }
+//                    ) { count ->
+//
+//                        SwipeToDelete(
+//                            onDelete = {
+//                                mainViewModel.deleteCount(count.id)
+//                            },
+//                            countItem = {
+//                                CountItem(count)
+//                            }
+//                        )
+//
+//                    }
+//                }
+//
+//                Spacer(modifier = Modifier.height(8.dp))
+//
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.End,
+//                    verticalAlignment = Alignment.Bottom
+//                ){
+//
+//                    TextButton(
+//                        onClick = cancelButton
+//                    ) {
+//                        Text(
+//                            text = "Cancel",
+//                            style = TextStyle(
+//                                color = Black,
+//                                fontFamily = onest,
+//                                fontWeight = FontWeight.SemiBold,
+//                                fontSize = 14.sp
+//                            )
+//                        )
+//                    }
+//
+//                    Spacer(modifier = Modifier.width(8.dp))
+//
+//                    TextButton(
+//                        onClick = confirmButton
+//                    ) {
+//                        Text(
+//                            text = "Save",
+//                            style = TextStyle(
+//                                color = Pink,
+//                                fontFamily = onest,
+//                                fontWeight = FontWeight.SemiBold,
+//                                fontSize = 14.sp
+//                            )
+//                        )
+//                    }
+//
+//                }
+//
+//            }
+//
+//        }
+//    }
+//}
