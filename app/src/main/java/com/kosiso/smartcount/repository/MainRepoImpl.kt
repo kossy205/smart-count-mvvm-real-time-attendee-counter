@@ -101,6 +101,7 @@ class MainRepoImpl @Inject constructor(
                 .collection(Constants.USERS)
                 .document(getCurrentUser()!!.uid)
                 .set(user, SetOptions.merge())
+                .await()
             Result.success(Unit)
         }catch (e: Exception){
             Result.failure(e)
@@ -113,7 +114,36 @@ class MainRepoImpl @Inject constructor(
                 .collection(Constants.AVAILABLE_USERS)
                 .document(getCurrentUser()!!.uid)
                 .set(user, SetOptions.merge())
+                .await()
             Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
+        return try {
+            firestore.collection(Constants.AVAILABLE_USERS)
+                .document(getCurrentUser()?.uid.toString())
+                .delete()
+                .await()
+            Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getUserDetails(): Result<User> {
+        return try {
+            val document = firestore.collection(Constants.USERS)
+                .document(getCurrentUser()?.uid.toString())
+                .get()
+                .await()
+
+            val user = document.toObject(User::class.java)
+                ?: return Result.failure(Exception("User not found"))
+
+            Result.success(user)
         }catch (e: Exception){
             Result.failure(e)
         }

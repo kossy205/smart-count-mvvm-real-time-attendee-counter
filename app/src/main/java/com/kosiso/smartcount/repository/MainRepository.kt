@@ -28,6 +28,8 @@ interface MainRepository {
     suspend fun registerUserInDB(user:User): Result<Unit>
 
     suspend fun addToAvailableUsersDB(user: User): Result<Unit>
+    suspend fun removeFromAvailableUsersDB(): Result<Unit>
+    suspend fun getUserDetails(): Result<User>
     suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
 
 
