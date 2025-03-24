@@ -1,12 +1,7 @@
 package com.kosiso.smartcount.repository
 
-import androidx.lifecycle.LiveData
-import com.google.android.gms.tasks.Task
-import com.google.firebase.auth.AuthResult
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.GeoPoint
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +27,8 @@ interface MainRepository {
 
     suspend fun registerUserInDB(user:User): Result<Unit>
 
+    suspend fun addToAvailableUsersDB(user: User): Result<Unit>
+    suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
 
 
 }

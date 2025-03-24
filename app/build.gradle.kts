@@ -70,6 +70,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
+    //geofirestore
+    implementation ("com.github.imperiumlabs:GeoFirestore-Android:v1.5.0")
+
+    // Google Maps Location Services
+    implementation ("com.google.android.gms:play-services-location:21.1.0")
 
 
     implementation("androidx.navigation:navigation-compose:2.7.7")

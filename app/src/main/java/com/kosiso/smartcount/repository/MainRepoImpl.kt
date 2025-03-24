@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.kosiso.smartcount.database.CountDao
@@ -20,12 +21,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
+import org.imperiumlabs.geofirestore.GeoFirestore
 import javax.inject.Inject
 
 class MainRepoImpl @Inject constructor(
     val countDao: CountDao,
     val firebaseAuth: FirebaseAuth,
-    val firestore: FirebaseFirestore
+    val firestore: FirebaseFirestore,
+    val geoFirestore: GeoFirestore
     ): MainRepository {
 
     private val _count = MutableStateFlow(0)
@@ -98,6 +101,27 @@ class MainRepoImpl @Inject constructor(
                 .collection(Constants.USERS)
                 .document(getCurrentUser()!!.uid)
                 .set(user, SetOptions.merge())
+            Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun addToAvailableUsersDB(user: User): Result<Unit> {
+        return try{
+            firestore
+                .collection(Constants.AVAILABLE_USERS)
+                .document(getCurrentUser()!!.uid)
+                .set(user, SetOptions.merge())
+            Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit> {
+        return try{
+            geoFirestore.setLocation(userId, geoPoint)
             Result.success(Unit)
         }catch (e: Exception){
             Result.failure(e)

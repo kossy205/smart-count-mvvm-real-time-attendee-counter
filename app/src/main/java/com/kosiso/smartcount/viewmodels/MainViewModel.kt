@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.GeoPoint
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepository
@@ -30,6 +31,12 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     private val _onlineStatus = MutableStateFlow<Boolean>(false)
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
+
+    private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
+    val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
+
+    private val _setLocationWithGeoFireResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
+    val setLocationWithGeoFireResult: StateFlow<MainOperationState<Unit>> = _setLocationWithGeoFireResult
 
 
 
@@ -101,6 +108,21 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
+    fun addToAvailableUsersDB(user: User, geoPoint: GeoPoint){
+        viewModelScope.launch{
+            _uploadToAvailableUsersDBResult.value = MainOperationState.Loading
+            val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
+            uploadToAvailableUsers.onSuccess {
+                _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
+                mainRepository.setLocationUsingGeoFirestore(getCurrentUser()!!.uid, geoPoint)
+            }
+            uploadToAvailableUsers.onFailure {
+                _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+
+            }
+        }
+    }
+
     fun getCurrentUser(): FirebaseUser?{
         return mainRepository.getCurrentUser()
     }
@@ -137,4 +159,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     fun onlineStatus(isOnline: Boolean){
         _onlineStatus.value = isOnline
     }
+
+
 }
