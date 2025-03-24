@@ -54,7 +54,12 @@ import androidx.constraintlayout.compose.layoutId
 import com.kosiso.smartcount.R
 import com.kosiso.smartcount.TapCountForeground
 import com.kosiso.smartcount.database.models.Count
+import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepoImpl
+import com.kosiso.smartcount.ui.screen_states.MainOperationState
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Idle
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
+import com.kosiso.smartcount.ui.screen_states.MainOperationState.Success
 import com.kosiso.smartcount.ui.theme.BackgroundColor
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Green
@@ -159,8 +164,46 @@ private fun SendCommandToService(action: String){
 @Composable
 private fun TopIconSection(mainViewModel: MainViewModel){
 
+    val context = LocalContext.current
     val onlineStatusData = mainViewModel.onlineStatus.collectAsState().value
     var isOnline by remember { mutableStateOf(false) }
+
+    // get user details success/error
+    LaunchedEffect(Unit) {
+        mainViewModel.getUserDetails()
+    }
+    val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
+    val userDetail: User? = when (val result = getUserDetails.value) {
+        Idle -> {
+            Log.i("getting user details", "idle")
+            null
+        }
+        Loading -> {
+            Log.i("getting user details", "loading")
+            null
+        }
+        is Success<User> -> {
+            val user = result.data
+            Log.i("getting user details", "success: $user")
+            user
+        }
+        is MainOperationState.Error -> {
+            val errorMessage = result.message
+            Log.i("getting user details", errorMessage)
+            isOnline = false
+            Toast.makeText(context, "Error coming online, make sure you have a good internet connection and try again", Toast.LENGTH_LONG).show()
+            null
+        }
+    }
+
+    val user = User(
+        id = mainViewModel.getCurrentUser()?.uid.toString(),
+        name = userDetail?.name.toString(),
+        phone = userDetail?.phone.toString(),
+        email = userDetail?.email.toString(),
+        password = userDetail?.password.toString(),
+        image = userDetail?.image.toString(),
+    )
 
     Box(
         modifier = Modifier
@@ -194,6 +237,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         mainViewModel.onlineStatus(!isOnline)
                     }
                 )
+                mainViewModel.addToAvailableUsersDB(user)
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -204,6 +248,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         mainViewModel.onlineStatus(!isOnline)
                     }
                 )
+                mainViewModel.removeFromAvailableUserDB()
             }
 
 

@@ -35,6 +35,12 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
 
+    private val _removeFromAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
+    val removeFromAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _removeFromAvailableUsersDBResult
+
+    private val _getUserDetailsResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Loading)
+    val getUserDetailsResult: StateFlow<MainOperationState<User>> = _getUserDetailsResult
+
     private val _setLocationWithGeoFireResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
     val setLocationWithGeoFireResult: StateFlow<MainOperationState<Unit>> = _setLocationWithGeoFireResult
 
@@ -108,16 +114,46 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
-    fun addToAvailableUsersDB(user: User, geoPoint: GeoPoint){
+    fun addToAvailableUsersDB(user: User){
         viewModelScope.launch{
             _uploadToAvailableUsersDBResult.value = MainOperationState.Loading
             val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
             uploadToAvailableUsers.onSuccess {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
-                mainRepository.setLocationUsingGeoFirestore(getCurrentUser()!!.uid, geoPoint)
+//                mainRepository.setLocationUsingGeoFirestore(getCurrentUser()!!.uid, geoPoint)
             }
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+
+            }
+        }
+    }
+
+    fun removeFromAvailableUserDB(){
+        viewModelScope.launch{
+            _removeFromAvailableUsersDBResult.value = MainOperationState.Loading
+            val removeFromAvailableUsers = mainRepository.removeFromAvailableUsersDB()
+            removeFromAvailableUsers.onSuccess {
+                _removeFromAvailableUsersDBResult.value = MainOperationState.Success(Unit)
+
+            }
+            removeFromAvailableUsers.onFailure {
+                _removeFromAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+
+            }
+        }
+    }
+
+    fun getUserDetails(){
+        viewModelScope.launch{
+            _getUserDetailsResult.value = MainOperationState.Loading
+            val getUserDetails = mainRepository.getUserDetails()
+            getUserDetails.onSuccess {user ->
+                _getUserDetailsResult.value = MainOperationState.Success(user)
+
+            }
+            getUserDetails.onFailure {
+                _getUserDetailsResult.value = MainOperationState.Error(it.message.toString())
 
             }
         }
