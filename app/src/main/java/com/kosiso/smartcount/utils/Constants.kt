@@ -12,5 +12,6 @@ object Constants {
     const val ROOM_DATABASE_NAME = "ROOM_DATABASE"
 
     const val USERS = "users"
+    const val AVAILABLE_USERS = "available_users"
 
 }

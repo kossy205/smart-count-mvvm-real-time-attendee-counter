@@ -1,13 +1,20 @@
 package com.kosiso.smartcount.di
 
 import android.content.Context
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
 import androidx.room.Room
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kosiso.foodshare.repository.LocationRepository
+import com.kosiso.foodshare.repository.LocationRepositoryImplementation
+import org.imperiumlabs.geofirestore.GeoFirestore
 import com.kosiso.smartcount.database.CountDao
 import com.kosiso.smartcount.database.RoomDatabase
 import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.repository.MainRepository
+import com.kosiso.smartcount.utils.Constants
 import com.kosiso.smartcount.utils.Constants.ROOM_DATABASE_NAME
 import dagger.Module
 import dagger.Provides
@@ -42,11 +49,13 @@ object AppModule {
     @Provides
     fun provideMainRepository(countDao: CountDao,
                               firebaseAuth: FirebaseAuth,
-                              firestore: FirebaseFirestore): MainRepository{
+                              firestore: FirebaseFirestore,
+                              geoFirestore: GeoFirestore): MainRepository{
         return MainRepoImpl(
             countDao,
             firebaseAuth,
-            firestore
+            firestore,
+            geoFirestore
         )
     }
 
@@ -57,5 +66,35 @@ object AppModule {
     @Singleton
     @Provides
     fun provideFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    @Singleton
+    @Provides
+    fun provideGeoFirestore(
+        firestore: FirebaseFirestore
+    ): GeoFirestore{
+        return GeoFirestore(firestore.collection(Constants.AVAILABLE_USERS))
+    }
+
+
+
+    @Singleton
+    @Provides
+    fun provideLocationRepository(fusedLocationProviderClient: FusedLocationProviderClient,
+                                  locationRequest: LocationRequest): LocationRepository {
+        return LocationRepositoryImplementation(fusedLocationProviderClient, locationRequest)
+    }
+    @Singleton
+    @Provides
+    fun provideFusedLocationClient(@ApplicationContext app: Context):FusedLocationProviderClient{
+        return LocationServices.getFusedLocationProviderClient(app)
+    }
+    @Singleton
+    @Provides
+    fun providelocationRequest():LocationRequest{
+        return LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            interval = 5000 // 5 seconds
+        }
+    }
 
 }
