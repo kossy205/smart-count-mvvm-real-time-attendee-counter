@@ -9,6 +9,9 @@ object Constants {
     const val ACTION_STOP = " stop_service"
     const val ACTION_SHOW_TAP_SCREEN = "ACTION_SHOW_TAP_SCREEN"
 
+    const val ACTION_START_LOCATION_UPDATE = "start_location_update"
+    const val ACTION_STOP_LOCATION_UPDATE = "stop_location_update"
+
     const val ROOM_DATABASE_NAME = "ROOM_DATABASE"
 
     const val USERS = "users"

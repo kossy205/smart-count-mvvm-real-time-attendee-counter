@@ -6,6 +6,7 @@ import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import org.imperiumlabs.geofirestore.GeoQuery
 
 interface MainRepository {
     val count: StateFlow<Int>
@@ -29,6 +30,11 @@ interface MainRepository {
 
     suspend fun addToAvailableUsersDB(user: User): Result<Unit>
     suspend fun removeFromAvailableUsersDB(): Result<Unit>
+    suspend fun removeGeofirestoreLocation(): Result<Unit>
+
+
+    fun queryAvailableUsers(geoPoint: GeoPoint, radius: Double): GeoQuery
+
     suspend fun getUserDetails(): Result<User>
     suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
 

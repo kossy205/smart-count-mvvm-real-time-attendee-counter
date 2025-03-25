@@ -13,10 +13,17 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.imperiumlabs.geofirestore.GeoQuery
+import org.imperiumlabs.geofirestore.listeners.GeoQueryEventListener
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(val mainRepository: MainRepository): ViewModel(){
+
+    private lateinit var geoQueryEventListener: GeoQueryEventListener
+    private lateinit var geoQuery: GeoQuery
+    private var isGeoQueryActive: Boolean = false
+
 
     val count: StateFlow<Int> = mainRepository.count
 
@@ -32,7 +39,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _onlineStatus = MutableStateFlow<Boolean>(false)
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
 
-    private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
+    private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
 
     private val _removeFromAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
@@ -134,6 +141,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             _removeFromAvailableUsersDBResult.value = MainOperationState.Loading
             val removeFromAvailableUsers = mainRepository.removeFromAvailableUsersDB()
             removeFromAvailableUsers.onSuccess {
+                mainRepository.removeGeofirestoreLocation()
                 _removeFromAvailableUsersDBResult.value = MainOperationState.Success(Unit)
 
             }
@@ -158,6 +166,51 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
+
+    fun fetchAvailableUsers(geoPoint: GeoPoint){
+        val radius = 0.2
+        geoQuery = mainRepository.queryAvailableUsers(geoPoint, radius)
+
+        geoQueryEventListener = object : GeoQueryEventListener{
+            override fun onGeoQueryError(exception: Exception) {
+                Log.i("geoquery error", "$exception")
+            }
+
+            override fun onGeoQueryReady() {
+                Log.i("geoquery Ready 1", "onGeoQueryReady")
+
+            }
+
+            override fun onKeyEntered(documentID: String, location: GeoPoint) {
+                Log.i("geoquery qualified 1", " user entered radius is in the radius.")
+
+
+            }
+
+            override fun onKeyExited(documentID: String) {
+                Log.i("geoquery onKeyExit", "location no longer in the radius")
+            }
+
+            override fun onKeyMoved(documentID: String, location: GeoPoint) {
+                Log.i("geoquery onKeyMoved", "moved but still in radius location is $location")
+            }
+        }
+
+        geoQuery.addGeoQueryEventListener(geoQueryEventListener)
+        isGeoQueryActive = true
+    }
+
+    fun removeGeoQueryEventListeners(){
+        if (isGeoQueryActive) {
+            geoQuery.removeGeoQueryEventListener(geoQueryEventListener)
+            isGeoQueryActive = false
+            Log.i("geoquery remove listener", "Listener removed")
+        } else {
+            Log.i("geoquery remove listener", "No active listener to remove")
+        }
+    }
+
+
 
     fun getCurrentUser(): FirebaseUser?{
         return mainRepository.getCurrentUser()

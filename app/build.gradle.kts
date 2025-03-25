@@ -98,8 +98,6 @@ dependencies {
     implementation ("androidx.concurrent:concurrent-futures:1.1.0")
 
 
-
-
     //charts
     implementation ("co.yml:ycharts:2.1.0")
 
@@ -108,8 +106,6 @@ dependencies {
 //    implementation ("com.google.mlkit:face-detection:16.1.7")
 
     implementation ("androidx.constraintlayout:constraintlayout-compose:1.1.0")
-
-
 
 
     // ViewModel support in Compose
