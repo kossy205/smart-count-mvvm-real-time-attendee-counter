@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
 import org.imperiumlabs.geofirestore.GeoFirestore
+import org.imperiumlabs.geofirestore.GeoQuery
 import javax.inject.Inject
 
 class MainRepoImpl @Inject constructor(
@@ -133,6 +134,15 @@ class MainRepoImpl @Inject constructor(
         }
     }
 
+    override suspend fun removeGeofirestoreLocation(): Result<Unit> {
+        return try {
+            geoFirestore.removeLocation(getCurrentUser()?.uid.toString())
+            Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getUserDetails(): Result<User> {
         return try {
             val document = firestore.collection(Constants.USERS)
@@ -156,6 +166,10 @@ class MainRepoImpl @Inject constructor(
         }catch (e: Exception){
             Result.failure(e)
         }
+    }
+
+    override fun queryAvailableUsers(geoPoint: GeoPoint, radius: Double): GeoQuery {
+        return geoFirestore.queryAtLocation(geoPoint, radius)
     }
 
     override fun signOut() {

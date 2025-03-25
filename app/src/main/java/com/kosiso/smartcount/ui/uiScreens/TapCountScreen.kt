@@ -73,6 +73,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.ActivityCompat
@@ -88,7 +89,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 @Preview(showBackground = true, backgroundColor = 0xFF00FF00)
 @Composable
 private fun Preview(){
-    SessionCountSection()
+//    SessionCountSection()
 }
 
 
@@ -148,7 +149,7 @@ fun TapCountScreen(mainViewModel: MainViewModel){
 
             CountDetailsSection(mainViewModel)
 
-            SessionCountSection()
+            SessionCountSection(mainViewModel)
 
             CountButtonsSection(mainViewModel)
         }
@@ -445,7 +446,7 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
 }
 
 @Composable
-private fun SessionCountSection(){
+private fun SessionCountSection(mainViewModel: MainViewModel){
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -457,17 +458,7 @@ private fun SessionCountSection(){
             modifier = Modifier
                 .fillMaxWidth()
         ){
-//            Text(
-//                text = "Session Count",
-//                style = TextStyle(
-//                    color = Black,
-//                    fontFamily = onest,
-//                    fontWeight = FontWeight.Medium,
-//                    fontSize = 16.sp
-//                ),
-//                modifier = Modifier.align(Alignment.Start)
-//            )
-//            Spacer(modifier = Modifier.height(3.dp))
+
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(24.dp))
@@ -510,7 +501,8 @@ private fun SessionCountSection(){
                         iconColor = White,
                         backgroundColor = White.copy(alpha = 0.2f),
                         onIconClick = {
-
+                            mainViewModel.onlineStatus(true)
+//                            ShowAddCountersDialog() { }
                         },
                         modifier = Modifier
                             .size(25.dp)
@@ -769,6 +761,89 @@ private fun ShowCustomDialog(
     }
 }
 
+@Composable
+private fun ShowAddCountersDialog(
+    onDismiss: () -> Unit,
+    cancelButton: () -> Unit,
+    confirmButton: () -> Unit
+){
+    Dialog(onDismissRequest = onDismiss){
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface
+        ){
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+
+                Text(
+                    text = "Available Users",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn {
+
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.Bottom
+                ){
+
+                    TextButton(
+                        onClick = cancelButton
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = TextStyle(
+                                color = Black,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    TextButton(
+                        onClick = confirmButton
+                    ) {
+                        Text(
+                            text = "Save",
+                            style = TextStyle(
+                                color = Pink,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                }
+
+            }
+
+        }
+    }
+}
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -1149,104 +1224,6 @@ fun Context.findActivity(): ComponentActivity {
 //        }
 //        permissionState.permanentlyDeniedPermissions.isNotEmpty() -> {
 //            // Permanent denial case
-//
-//        }
-//    }
-//}
-
-//@Composable
-//private fun ShowAddCountersDialog(
-//    onDismiss: () -> Unit,
-//    cancelButton: () -> Unit,
-//    confirmButton: () -> Unit
-//){
-//    Dialog(onDismissRequest = onDismiss){
-//        Surface(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp),
-//            shape = MaterialTheme.shapes.medium,
-//            color = MaterialTheme.colorScheme.surface
-//        ){
-//
-//            Column(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(16.dp)
-//            ) {
-//
-//                Text(
-//                    text = "Available Users",
-//                    style = TextStyle(
-//                        color = Black,
-//                        fontFamily = onest,
-//                        fontWeight = FontWeight.Medium,
-//                        fontSize = 16.sp
-//                    )
-//                )
-//
-//                Spacer(modifier = Modifier.height(12.dp))
-//
-//                LazyColumn {
-//                    items(
-//                        items = count,
-//                        key = { it.id }
-//                    ) { count ->
-//
-//                        SwipeToDelete(
-//                            onDelete = {
-//                                mainViewModel.deleteCount(count.id)
-//                            },
-//                            countItem = {
-//                                CountItem(count)
-//                            }
-//                        )
-//
-//                    }
-//                }
-//
-//                Spacer(modifier = Modifier.height(8.dp))
-//
-//                Row(
-//                    modifier = Modifier
-//                        .fillMaxWidth(),
-//                    horizontalArrangement = Arrangement.End,
-//                    verticalAlignment = Alignment.Bottom
-//                ){
-//
-//                    TextButton(
-//                        onClick = cancelButton
-//                    ) {
-//                        Text(
-//                            text = "Cancel",
-//                            style = TextStyle(
-//                                color = Black,
-//                                fontFamily = onest,
-//                                fontWeight = FontWeight.SemiBold,
-//                                fontSize = 14.sp
-//                            )
-//                        )
-//                    }
-//
-//                    Spacer(modifier = Modifier.width(8.dp))
-//
-//                    TextButton(
-//                        onClick = confirmButton
-//                    ) {
-//                        Text(
-//                            text = "Save",
-//                            style = TextStyle(
-//                                color = Pink,
-//                                fontFamily = onest,
-//                                fontWeight = FontWeight.SemiBold,
-//                                fontSize = 14.sp
-//                            )
-//                        )
-//                    }
-//
-//                }
-//
-//            }
 //
 //        }
 //    }

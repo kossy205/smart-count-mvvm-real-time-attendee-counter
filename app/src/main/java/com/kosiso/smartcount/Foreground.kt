@@ -104,6 +104,7 @@ class Foreground: LifecycleService() {
 
     private fun killService(){
         Log.i("service 1","stop service")
+        stopLocationUpdates()
         serviceScope.cancel()
         stopForeground(true)
         stopSelf()
@@ -111,15 +112,14 @@ class Foreground: LifecycleService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceScope.cancel()
-        stopLocationUpdates()
+        killService()
     }
 
     // Kill the service when the app is removed from recent tasks or recent apps
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        killService()
-    }
+//    override fun onTaskRemoved(rootIntent: Intent?) {
+//        super.onTaskRemoved(rootIntent)
+//        killService()
+//    }
 
     private fun getCurrentLocationUpdate(){
         locationRepository.getLocationUpdates(
