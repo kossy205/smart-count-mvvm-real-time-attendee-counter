@@ -795,7 +795,7 @@ private fun ShowAddCountersDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn {
-
+                    //
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
