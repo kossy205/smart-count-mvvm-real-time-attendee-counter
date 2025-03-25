@@ -1,7 +1,6 @@
 package com.kosiso.smartcount.ui.uiScreens
 
 import android.content.Intent
-import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -17,10 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,9 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
-import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -52,10 +45,9 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.layoutId
 import com.kosiso.smartcount.R
-import com.kosiso.smartcount.TapCountForeground
+import com.kosiso.smartcount.Foreground
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
-import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Idle
 import com.kosiso.smartcount.ui.screen_states.MainOperationState.Loading
@@ -69,8 +61,28 @@ import com.kosiso.smartcount.ui.theme.onest
 import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.utils.Constants
 import com.kosiso.smartcount.viewmodels.MainViewModel
-import java.sql.Timestamp
-import java.util.Date
+
+import android.Manifest
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 
 
 @Preview(showBackground = true, backgroundColor = 0xFF00FF00)
@@ -80,6 +92,7 @@ private fun Preview(){
 }
 
 
+@RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun TapCountScreen(mainViewModel: MainViewModel){
 
@@ -147,7 +160,7 @@ private fun SendCommandToService(action: String){
     val context = LocalContext.current
     LaunchedEffect(key1 = action) {
         Log.i("send command", "works")
-        Intent(context, TapCountForeground::class.java).also{
+        Intent(context, Foreground::class.java).also{
             Log.i("send command 1", "works")
             it.action = action
             // this starts the service
@@ -160,13 +173,78 @@ private fun SendCommandToService(action: String){
 
 }
 
+@Composable
+private fun SendLocationUpdateCommand(action: String){
+    val context = LocalContext.current
+    LaunchedEffect(key1 = action) {
+        Log.i("send location command", "works")
+        Intent(context, Foreground::class.java).also{
+            Log.i("send location command 1", "works")
+            it.action = action
+            // this starts the service
+            // while the "startForeground(id.notification)" is what makes or promote it to a foreground
+            context.startService(it)
+            Log.i("send location command 2", "works")
+        }
+        Log.i("send location command 3", "works")
+    }
 
+}
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@Composable
+private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
+
+    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
+    when (val result = uploadResult.value) {
+        Idle -> {
+            Log.i("upload available user", "idle")
+        }
+        Loading -> {
+            Log.i("upload available user", "loading")
+        }
+        is Success -> {
+            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
+            Log.i("upload available user", "success")
+        }
+        is MainOperationState.Error -> {
+            val errorMessage = result.message
+            Log.i("upload available user", errorMessage)
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 private fun TopIconSection(mainViewModel: MainViewModel){
 
     val context = LocalContext.current
     val onlineStatusData = mainViewModel.onlineStatus.collectAsState().value
     var isOnline by remember { mutableStateOf(false) }
+
+    var shouldRequestPermission by remember { mutableStateOf(false) }
+    val permissions = when {
+        // android 10 and above
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+        // android 9 and below
+        else -> arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    }
+    // Update permission state reactively
+    var arePermissionsGranted by remember {
+        mutableStateOf(
+            permissions.all {
+                ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+            }
+        )
+    }
+    Log.i("permission in icon section granted?", "$arePermissionsGranted")
 
     // get user details success/error
     LaunchedEffect(Unit) {
@@ -227,6 +305,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 }
             )
 
+
             if(onlineStatusData == true){
                 isOnline = true
                 Common.IconButtonDesign(
@@ -237,7 +316,10 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         mainViewModel.onlineStatus(!isOnline)
                     }
                 )
+                // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
+                // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
+                CheckUploadToAvailableUsersDBResult(mainViewModel)
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -245,13 +327,33 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     iconColor = Black,
                     backgroundColor = White,
                     onIconClick = {
-                        mainViewModel.onlineStatus(!isOnline)
+                        if(arePermissionsGranted == true){
+                            // permissions granted
+                            mainViewModel.onlineStatus(!isOnline)
+                        }else{
+                            shouldRequestPermission = true
+                        }
                     }
                 )
                 mainViewModel.removeFromAvailableUserDB()
+                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
+                // location action is sent to foreground once the online status is false.
+                // doesnt wait for any success
             }
 
-
+            if(shouldRequestPermission){
+                LocationPermission(
+                    onGranted = {
+                        // Update permission status when granted
+                        // Makes it known that the permissions has been granted
+                        arePermissionsGranted = permissions.all {
+                            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                        }
+                        mainViewModel.onlineStatus(!isOnline)
+                        shouldRequestPermission = false
+                    }
+                )
+            }
         }
     }
 }
@@ -342,6 +444,83 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
     }
 }
 
+@Composable
+private fun SessionCountSection(){
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .layoutId("session_count_section")
+    ){
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+        ){
+//            Text(
+//                text = "Session Count",
+//                style = TextStyle(
+//                    color = Black,
+//                    fontFamily = onest,
+//                    fontWeight = FontWeight.Medium,
+//                    fontSize = 16.sp
+//                ),
+//                modifier = Modifier.align(Alignment.Start)
+//            )
+//            Spacer(modifier = Modifier.height(3.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .fillMaxWidth()
+                    .background(Black)
+            ){
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ){
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                    ){
+                        Text(
+                            text = "Session Count",
+                            style = TextStyle(
+                                color = White.copy(alpha = 0.8f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            ),
+                            modifier = Modifier.padding(bottom = 7.dp)
+                        )
+                        Text(
+                            text = "Count with other users who are \nonline and 200 meters around you.",
+                            style = TextStyle(
+                                color = White.copy(alpha = 0.6f),
+                                fontFamily = onest,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp
+                            )
+                        )
+                    }
+
+                    Common.IconButtonDesign(
+                        iconId = R.drawable.ic_play,
+                        iconColor = White,
+                        backgroundColor = White.copy(alpha = 0.2f),
+                        onIconClick = {
+
+                        },
+                        modifier = Modifier
+                            .size(25.dp)
+                    )
+                }
+
+            }
+        }
+    }
+}
 
 @Composable
 private fun CountButtonsSection(mainViewModel: MainViewModel){
@@ -590,83 +769,169 @@ private fun ShowCustomDialog(
     }
 }
 
+
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun SessionCountSection(){
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .layoutId("session_count_section")
-    ){
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-        ){
-//            Text(
-//                text = "Session Count",
-//                style = TextStyle(
-//                    color = Black,
-//                    fontFamily = onest,
-//                    fontWeight = FontWeight.Medium,
-//                    fontSize = 16.sp
-//                ),
-//                modifier = Modifier.align(Alignment.Start)
-//            )
-//            Spacer(modifier = Modifier.height(3.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .fillMaxWidth()
-                    .background(Black)
-            ){
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                ){
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                    ){
-                        Text(
-                            text = "Session Count",
-                            style = TextStyle(
-                                color = White.copy(alpha = 0.8f),
-                                fontFamily = onest,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            ),
-                            modifier = Modifier.padding(bottom = 7.dp)
-                        )
-                        Text(
-                            text = "Count with other users who are \nonline and 200 meters around you.",
-                            style = TextStyle(
-                                color = White.copy(alpha = 0.6f),
-                                fontFamily = onest,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 13.sp
-                            )
-                        )
+fun LocationPermission(onGranted: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
+    var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
+    var isAllGranted by remember { mutableStateOf(false) }
+    var shouldOpenAppSettingToAcceptPermission by remember { mutableStateOf(false) }
+
+    val permissions = when {
+        // android 10 and above
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        )
+        // android 9 and below
+        else -> arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    }
+
+    // Create a list of permission states for each permission
+    val permissionStates = permissions.map { permission ->
+        rememberPermissionState(permission)
+    }
+
+    // Permission launcher for manual permission request
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissionsResult ->
+            permissionsResult.forEach { (permission, isGranted) ->
+                when {
+                    isGranted -> {
+                        // Permission was granted
+                        isAllGranted = true
+                        Log.i("location permission granted", "granted $permission")
                     }
-
-                    Common.IconButtonDesign(
-                        iconId = R.drawable.ic_play,
-                        iconColor = White,
-                        backgroundColor = White.copy(alpha = 0.2f),
-                        onIconClick = {
-
-                        },
-                        modifier = Modifier
-                            .size(25.dp)
-                    )
+                    permissionStates.find { it.permission == permission }?.status?.shouldShowRationale == true -> {
+                        // Permission was denied, but we can ask again
+                        showTemporarilyDeniedDialog = true
+                        Log.i("location permission denied", "temporal $permission")
+                    }
+                    else -> {
+                        // Permission permanently denied
+                        showPermanentlyDeniedDialog = true
+                        Log.i("location permission denied", "permanent $permission")
+                    }
                 }
-
             }
         }
+    )
+
+
+    // Launch permission request on start
+    DisposableEffect(
+        key1 = lifecycleOwner,
+        effect = {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_START) {
+                    // Only launch request if the permissions are not granted
+                    if (permissionStates.any { !it.status.isGranted }) {
+                        permissionLauncher.launch(permissions)
+                    }
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+    )
+
+    // Invoke onGranted when permissions are granted
+    if (isAllGranted) {
+        onGranted() // This is now in a composable context
+    }
+
+    // Show dialog for temporarily denied permissions
+    if (showTemporarilyDeniedDialog) {
+        Common.ShowDialog(
+            titleText = "Permission Required",
+            dialogText = "Please grant location permissions to count with other users.",
+            positiveButtonText = "Grant",
+            negativeButtonText = "Dismiss",
+            confirmButtonClick = {
+                showTemporarilyDeniedDialog = false
+                permissionLauncher.launch(permissions) // Relaunch permission request
+            },
+            dismissButtonClick = {
+                showTemporarilyDeniedDialog = false
+            }
+        )
+    }
+
+    // Show dialog for permanently denied permissions
+    if (showPermanentlyDeniedDialog) {
+        Common.ShowDialog(
+            titleText = "Permission Required",
+            dialogText = "Locations permissions are required to count with other users. You can go to settings and manually grant them.",
+            positiveButtonText = "Go to Settings",
+            negativeButtonText = "Dismiss",
+            confirmButtonClick = {
+                showPermanentlyDeniedDialog = false
+                // Launcher to open app settings
+                shouldOpenAppSettingToAcceptPermission = true
+            },
+            dismissButtonClick = {
+                showPermanentlyDeniedDialog = false
+            }
+        )
+    }
+
+    if(shouldOpenAppSettingToAcceptPermission){
+        LaunchAppSetting()
     }
 }
+
+@Composable
+private fun LaunchAppSetting(){
+    val context = LocalContext.current
+    val settingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+        onResult = {  }
+    )
+    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.fromParts("package", context.packageName, null)
+    }
+    settingsLauncher.launch(intent)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @Composable
 private fun SessionCountSection1(){
     Box(
@@ -733,7 +998,8 @@ private fun SessionCountSection1(){
                             .border(
                                 width = 1.dp,
                                 color = Black.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(30.dp))
+                                shape = RoundedCornerShape(30.dp)
+                            )
                             .clip(RoundedCornerShape(30.dp)), // clips the border to match the shape and height of the button
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Transparent
@@ -754,6 +1020,139 @@ private fun SessionCountSection1(){
         }
     }
 }
+
+
+@Composable
+fun RequestLocationPermission(permissions: Array<String>){
+    requestMultiplePermissions(
+        permissions = permissions,
+        onPermissionsGranted = {
+            // permissions granted
+        },
+        onPermissionsDenied = {
+
+        }
+    )
+}
+
+// check if all specified permissions are granted
+@Composable
+fun ArePermissionsGranted(vararg permissions: String): Boolean {
+    val context = LocalContext.current
+    var allGranted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        allGranted = permissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    return allGranted
+}
+
+// Function to request multiple permissions
+@Composable
+fun requestMultiplePermissions(
+    permissions: Array<String>,
+    onPermissionsGranted: () -> Unit, // all permissions are granted
+    onPermissionsDenied: (Map<String, Boolean>) -> Unit = {} // Called with permission results if any denied
+): () -> Unit { // Returns a function to trigger the request
+    val context = LocalContext.current
+    var showRationale by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val allGranted = result.values.all { it } //    all permissions were granted
+        if (allGranted) {
+            onPermissionsGranted()
+        } else {
+            onPermissionsDenied(result)
+            // Show rationale if any permission needs explanation
+            showRationale = permissions.any {
+                ActivityCompat.shouldShowRequestPermissionRationale(context.findActivity(), it)
+            }
+        }
+    }
+
+    // Rationale dialog
+    if (showRationale) {
+        PermissionRationaleDialog(
+            onDismiss = { showRationale = false },
+            onConfirm = {
+                permissionLauncher.launch(permissions)
+                showRationale = false
+            }
+        )
+    }
+
+    // Return the function to trigger the request
+    return {
+        val shouldShowRationale = permissions.any {
+            ActivityCompat.shouldShowRequestPermissionRationale(context.findActivity(), it)
+        }
+        if (shouldShowRationale) {
+            showRationale = true
+        } else {
+            permissionLauncher.launch(permissions)
+        }
+    }
+}
+
+
+// Rationale dialog composable
+@Composable
+fun PermissionRationaleDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Permissions Needed") },
+        text = { Text("This app needs location permissions to be able to count with other users. Please grant them.") },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// Helper to get Activity from Context
+fun Context.findActivity(): ComponentActivity {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is ComponentActivity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    throw IllegalStateException("No ComponentActivity found")
+}
+
+//@OptIn(ExperimentalPermissionsApi::class)
+//@Composable
+//fun PermissionPartialOrPermanentDenial(){
+//    when {
+//        permissionState.allGranted -> {
+//            // all permissions granted
+//
+//        }
+//        permissionState.grantedPermissions.isNotEmpty() && permissionState.deniedPermissions.isNotEmpty() -> {
+//            // Partial grant case
+//
+//        }
+//        permissionState.permanentlyDeniedPermissions.isNotEmpty() -> {
+//            // Permanent denial case
+//
+//        }
+//    }
+//}
 
 //@Composable
 //private fun ShowAddCountersDialog(

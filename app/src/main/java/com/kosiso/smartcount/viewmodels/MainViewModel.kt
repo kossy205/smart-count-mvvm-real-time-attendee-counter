@@ -32,7 +32,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _onlineStatus = MutableStateFlow<Boolean>(false)
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
 
-    private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
+    private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
 
     private val _removeFromAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)

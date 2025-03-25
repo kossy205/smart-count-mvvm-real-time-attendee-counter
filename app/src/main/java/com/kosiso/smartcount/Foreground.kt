@@ -3,36 +3,35 @@ package com.kosiso.smartcount
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.media.AudioManager
-import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
-import android.view.KeyEvent
-import androidx.compose.runtime.collectAsState
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.Observer
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.firebase.firestore.GeoPoint
+import com.kosiso.foodshare.repository.LocationRepository
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.scopes.ServiceScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class TapCountForeground: LifecycleService() {
+class Foreground: LifecycleService() {
 
     @Inject lateinit var notificationManager: NotificationManager
     @Inject lateinit var notificationBuilder: NotificationCompat.Builder
     @Inject lateinit var notificationChannel: NotificationChannel
     @Inject lateinit var mainRepository: MainRepository
+
+    @Inject lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    @Inject lateinit var locationRepository: LocationRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -43,7 +42,7 @@ class TapCountForeground: LifecycleService() {
         serviceScope.launch{
             updateNotification()
         }
-
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,6 +52,12 @@ class TapCountForeground: LifecycleService() {
                     startForegroundService()
                 }
                 Constants.ACTION_STOP -> killService()
+                Constants.ACTION_START_LOCATION_UPDATE ->{
+                    getCurrentLocationUpdate()
+                }
+                Constants.ACTION_STOP_LOCATION_UPDATE ->{
+                    stopLocationUpdates()
+                }
             }
         }
         return super.onStartCommand(intent, flags, startId)
@@ -106,8 +111,8 @@ class TapCountForeground: LifecycleService() {
 
     override fun onDestroy() {
         super.onDestroy()
-
         serviceScope.cancel()
+        stopLocationUpdates()
     }
 
     // Kill the service when the app is removed from recent tasks or recent apps
@@ -116,5 +121,30 @@ class TapCountForeground: LifecycleService() {
         killService()
     }
 
+    private fun getCurrentLocationUpdate(){
+        locationRepository.getLocationUpdates(
+            {location ->
+                val geoPoint = GeoPoint(location.latitude, location.longitude)
+                serviceScope.launch{
+                    mainRepository.setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint).apply {
+                        onSuccess {
+                            Log.i("geofirestore location", "Location set successfully $geoPoint")
+                        }
+                        onFailure {
+                            Log.i("geofirestore location", "error: ${it.message}")
+                        }
+                    }
+                }
+                Log.i("service location","$geoPoint")
+            },{exception ->
+                Log.i("service location exception","$exception")
+            }
+        )
+    }
+
+    private fun stopLocationUpdates() {
+        Log.i("service location stopped", "stopped")
+        locationRepository.stopLocationUpdates()
+    }
 
 }
