@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
+import com.kosiso.smartcount.utils.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -168,8 +170,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
 
     fun fetchAvailableUsers(geoPoint: GeoPoint){
+        Log.i("fetch Available Users", "start")
         val radius = 0.2
         geoQuery = mainRepository.queryAvailableUsers(geoPoint, radius)
+        val listOfAvailableUsersDoc = mutableListOf<User>()
 
         geoQueryEventListener = object : GeoQueryEventListener{
             override fun onGeoQueryError(exception: Exception) {
@@ -182,9 +186,16 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
 
             override fun onKeyEntered(documentID: String, location: GeoPoint) {
-                Log.i("geoquery qualified 1", " user entered radius is in the radius.")
-
-
+                Log.i("geoquery qualified 1", "user entered radius is in the radius. $documentID")
+                viewModelScope.launch{
+                    val docFromDB = mainRepository.getDocFromDB(Constants.AVAILABLE_USERS, documentID)
+                    docFromDB.onSuccess {document ->
+                        val user = document.toObject(User::class.java)
+                        listOfAvailableUsersDoc.add(user!!)
+                        Log.i("available user doc", "$document")
+                        Log.i("available users doc list", "$listOfAvailableUsersDoc")
+                    }
+                }
             }
 
             override fun onKeyExited(documentID: String) {

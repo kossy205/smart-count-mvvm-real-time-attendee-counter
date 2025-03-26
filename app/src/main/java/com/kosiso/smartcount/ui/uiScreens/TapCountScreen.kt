@@ -5,7 +5,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,8 +72,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -84,18 +88,21 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.google.firebase.firestore.GeoPoint
 
 
 @Preview(showBackground = true, backgroundColor = 0xFF00FF00)
 @Composable
 private fun Preview(){
 //    SessionCountSection()
+//    CountersItem()
 }
-
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun TapCountScreen(mainViewModel: MainViewModel){
+
+    mainViewModel.fetchAvailableUsers(GeoPoint(6.4396174, 5.5975804))
 
     SendCommandToService(Constants.ACTION_START)
     Log.i("tap count screen", "visible")
@@ -795,6 +802,17 @@ private fun ShowAddCountersDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn {
+//                    items(
+//                        items = count,
+//                        key = { it.id }
+//                    ) { count ->
+//
+//                        CountersItem(
+//                            addToList = TODO(),
+//                            removeFromList = TODO()
+//                        )
+//
+//                    }
 
                 }
 
@@ -843,6 +861,91 @@ private fun ShowAddCountersDialog(
 
         }
     }
+}
+
+@Composable
+private fun CountersItem(
+    addToList: () -> Unit,
+    removeFromList: () -> Unit
+){
+    var isChecked by remember { mutableStateOf(false) }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp)
+            .background(White)
+            .clickable{
+                !isChecked
+            }
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 8.dp, end = 2.dp)
+        ){
+
+            Text(
+                text = "Kosiso",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                ),
+                modifier = Modifier
+                    .weight(70f)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .weight(20f)
+            ){
+                Text(
+                    text = "999",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 19.sp
+                    )
+                )
+                Text(
+                    text = "ppl",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(10f)
+            ){
+                Checkbox(
+                    checked = isChecked,
+                    onCheckedChange = { isChecked ->
+                        if(isChecked){
+                            addToList()
+                        }else{
+                            removeFromList()
+                        }
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Pink
+                    )
+                )
+            }
+        }
+    }
+
 }
 
 @OptIn(ExperimentalPermissionsApi::class)

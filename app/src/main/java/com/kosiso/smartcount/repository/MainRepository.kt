@@ -1,6 +1,7 @@
 package com.kosiso.smartcount.repository
 
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
@@ -33,10 +34,13 @@ interface MainRepository {
     suspend fun removeGeofirestoreLocation(): Result<Unit>
 
 
+    // queries and fetches all available users
     fun queryAvailableUsers(geoPoint: GeoPoint, radius: Double): GeoQuery
 
     suspend fun getUserDetails(): Result<User>
     suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
+
+    suspend fun getDocFromDB(collection: String, documentId: String): Result<DocumentSnapshot>
 
 
 }
