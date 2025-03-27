@@ -5,7 +5,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,8 +72,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -84,18 +88,21 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.google.firebase.firestore.GeoPoint
 
 
 @Preview(showBackground = true, backgroundColor = 0xFF00FF00)
 @Composable
 private fun Preview(){
 //    SessionCountSection()
+//    CountersItem()
 }
-
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun TapCountScreen(mainViewModel: MainViewModel){
+
+    mainViewModel.fetchAvailableUsers(GeoPoint(6.4396174, 5.5975804))
 
     SendCommandToService(Constants.ACTION_START)
     Log.i("tap count screen", "visible")
@@ -190,29 +197,6 @@ private fun SendLocationUpdateCommand(action: String){
         Log.i("send location command 3", "works")
     }
 
-}
-
-@RequiresApi(Build.VERSION_CODES.Q)
-@Composable
-private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
-
-    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
-    when (val result = uploadResult.value) {
-        Idle -> {
-            Log.i("upload available user", "idle")
-        }
-        Loading -> {
-            Log.i("upload available user", "loading")
-        }
-        is Success -> {
-            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
-            Log.i("upload available user", "success")
-        }
-        is MainOperationState.Error -> {
-            val errorMessage = result.message
-            Log.i("upload available user", errorMessage)
-        }
-    }
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -320,7 +304,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
                 // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
-                CheckUploadToAvailableUsersDBResult(mainViewModel)
+//                CheckUploadToAvailableUsersDBResult(mainViewModel)
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -337,7 +321,8 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     }
                 )
                 mainViewModel.removeFromAvailableUserDB()
-                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
+                mainViewModel.stopLocationUpdates()
+//                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
                 // location action is sent to foreground once the online status is false.
                 // doesnt wait for any success
             }
@@ -795,6 +780,17 @@ private fun ShowAddCountersDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn {
+//                    items(
+//                        items = count,
+//                        key = { it.id }
+//                    ) { count ->
+//
+//                        CountersItem(
+//                            addToList = TODO(),
+//                            removeFromList = TODO()
+//                        )
+//
+//                    }
 
                 }
 
@@ -843,6 +839,91 @@ private fun ShowAddCountersDialog(
 
         }
     }
+}
+
+@Composable
+private fun CountersItem(
+    addToList: () -> Unit,
+    removeFromList: () -> Unit
+){
+    var isChecked by remember { mutableStateOf(false) }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp)
+            .background(White)
+            .clickable{
+                !isChecked
+            }
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 8.dp, end = 2.dp)
+        ){
+
+            Text(
+                text = "Kosiso",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                ),
+                modifier = Modifier
+                    .weight(70f)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .weight(20f)
+            ){
+                Text(
+                    text = "999",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 19.sp
+                    )
+                )
+                Text(
+                    text = "ppl",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(10f)
+            ){
+                Checkbox(
+                    checked = isChecked,
+                    onCheckedChange = { isChecked ->
+                        if(isChecked){
+                            addToList()
+                        }else{
+                            removeFromList()
+                        }
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Pink
+                    )
+                )
+            }
+        }
+    }
+
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -1007,6 +1088,38 @@ private fun LaunchAppSetting(){
 
 
 
+
+
+
+
+
+
+
+
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@Composable
+private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
+
+    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
+    when (val result = uploadResult.value) {
+        Idle -> {
+            Log.i("upload available user", "idle")
+        }
+        Loading -> {
+            Log.i("upload available user", "loading")
+        }
+        is Success -> {
+            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
+            Log.i("upload available user", "success")
+        }
+        is MainOperationState.Error -> {
+            val errorMessage = result.message
+            Log.i("upload available user", errorMessage)
+        }
+    }
+}
+
 @Composable
 private fun SessionCountSection1(){
     Box(
@@ -1095,7 +1208,6 @@ private fun SessionCountSection1(){
         }
     }
 }
-
 
 @Composable
 fun RequestLocationPermission(permissions: Array<String>){
@@ -1209,22 +1321,3 @@ fun Context.findActivity(): ComponentActivity {
     }
     throw IllegalStateException("No ComponentActivity found")
 }
-
-//@OptIn(ExperimentalPermissionsApi::class)
-//@Composable
-//fun PermissionPartialOrPermanentDenial(){
-//    when {
-//        permissionState.allGranted -> {
-//            // all permissions granted
-//
-//        }
-//        permissionState.grantedPermissions.isNotEmpty() && permissionState.deniedPermissions.isNotEmpty() -> {
-//            // Partial grant case
-//
-//        }
-//        permissionState.permanentlyDeniedPermissions.isNotEmpty() -> {
-//            // Permanent denial case
-//
-//        }
-//    }
-//}

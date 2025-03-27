@@ -1,13 +1,13 @@
 package com.kosiso.smartcount.repository
 
 import android.util.Log
-import android.widget.Toast
-import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.SetOptions
@@ -170,6 +170,22 @@ class MainRepoImpl @Inject constructor(
 
     override fun queryAvailableUsers(geoPoint: GeoPoint, radius: Double): GeoQuery {
         return geoFirestore.queryAtLocation(geoPoint, radius)
+    }
+
+    override suspend fun getDocFromDB(
+        collection: String,
+        documentId: String
+    ): Result<DocumentSnapshot> {
+        return try {
+            val document = firestore.collection(collection)
+                .document(documentId)
+                .get()
+                .await()
+
+            Result.success(document)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
     }
 
     override fun signOut() {
