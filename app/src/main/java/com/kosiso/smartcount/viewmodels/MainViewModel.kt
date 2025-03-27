@@ -3,9 +3,12 @@ package com.kosiso.smartcount.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
+import com.kosiso.foodshare.repository.LocationRepository
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepository
@@ -25,6 +28,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private lateinit var geoQueryEventListener: GeoQueryEventListener
     private lateinit var geoQuery: GeoQuery
     private var isGeoQueryActive: Boolean = false
+    
+    @Inject lateinit var locationRepository: LocationRepository
 
 
     val count: StateFlow<Int> = mainRepository.count
@@ -68,7 +73,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }catch (e:Exception){
                 _roomOperationResult.value = MainOperationState.Error(e.message ?: "Error fetching count history")
             }
-
         }
     }
     /**
@@ -95,6 +99,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
+    
      fun signInUser(email: String, password: String){
          viewModelScope.launch{
              _authOperationResult.value = MainOperationState.Loading
@@ -109,6 +114,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
              }
          }
      }
+    
     fun registerNewUserInDB(user: User){
         viewModelScope.launch{
             _registerOperationResult.value = MainOperationState.Loading
@@ -129,7 +135,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
             uploadToAvailableUsers.onSuccess {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
-//                mainRepository.setLocationUsingGeoFirestore(getCurrentUser()!!.uid, geoPoint)
+                getCurrentLocationUpdate()
             }
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
@@ -153,6 +159,18 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
+    
+    fun setLocationUsingGeoFirestore(docId: String, geoPoint: GeoPoint){
+        viewModelScope.launch{
+            val setLocationGeofirestore = mainRepository.setLocationUsingGeoFirestore(docId, geoPoint)
+            setLocationGeofirestore.onSuccess {
+                Log.i("geofirestore location", "Location set successfully $geoPoint")
+            }
+            setLocationGeofirestore.onFailure {
+                Log.i("geofirestore location", "error: ${it.message}")
+            }
+        }
+    }
 
     fun getUserDetails(){
         viewModelScope.launch{
@@ -167,6 +185,27 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
             }
         }
+    }
+
+
+    private fun getCurrentLocationUpdate(){
+        locationRepository.getLocationUpdates(
+            {location ->
+                val geoPoint = GeoPoint(location.latitude, location.longitude)
+                viewModelScope.launch{
+
+                    setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint)
+                }
+                Log.i("location gotten","$geoPoint")
+            },{exception ->
+                Log.i("location exception","$exception")
+            }
+        )
+    }
+
+    fun stopLocationUpdates() {
+        Log.i("location stopped", "stopped")
+        locationRepository.stopLocationUpdates()
     }
 
     fun fetchAvailableUsers(geoPoint: GeoPoint){
@@ -190,8 +229,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 viewModelScope.launch{
                     val docFromDB = mainRepository.getDocFromDB(Constants.AVAILABLE_USERS, documentID)
                     docFromDB.onSuccess {document ->
-                        val user = document.toObject(User::class.java)
-                        listOfAvailableUsersDoc.add(user!!)
+                        val user = document.toObject(User::class.java)!!
+                        listOfAvailableUsersDoc.add(user)
                         Log.i("available user doc", "$document")
                         Log.i("available users doc list", "$listOfAvailableUsersDoc")
                     }

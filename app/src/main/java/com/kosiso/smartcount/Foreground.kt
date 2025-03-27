@@ -30,8 +30,6 @@ class Foreground: LifecycleService() {
     @Inject lateinit var notificationChannel: NotificationChannel
     @Inject lateinit var mainRepository: MainRepository
 
-    @Inject lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-    @Inject lateinit var locationRepository: LocationRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -42,7 +40,7 @@ class Foreground: LifecycleService() {
         serviceScope.launch{
             updateNotification()
         }
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+//        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,10 +51,10 @@ class Foreground: LifecycleService() {
                 }
                 Constants.ACTION_STOP -> killService()
                 Constants.ACTION_START_LOCATION_UPDATE ->{
-                    getCurrentLocationUpdate()
+//                    getCurrentLocationUpdate()
                 }
                 Constants.ACTION_STOP_LOCATION_UPDATE ->{
-                    stopLocationUpdates()
+//                    stopLocationUpdates()
                 }
             }
         }
@@ -104,7 +102,7 @@ class Foreground: LifecycleService() {
 
     private fun killService(){
         Log.i("service 1","stop service")
-        stopLocationUpdates()
+//        stopLocationUpdates()
         serviceScope.cancel()
         stopForeground(true)
         stopSelf()
@@ -121,30 +119,30 @@ class Foreground: LifecycleService() {
 //        killService()
 //    }
 
-    private fun getCurrentLocationUpdate(){
-        locationRepository.getLocationUpdates(
-            {location ->
-                val geoPoint = GeoPoint(location.latitude, location.longitude)
-                serviceScope.launch{
-                    mainRepository.setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint).apply {
-                        onSuccess {
-                            Log.i("geofirestore location", "Location set successfully $geoPoint")
-                        }
-                        onFailure {
-                            Log.i("geofirestore location", "error: ${it.message}")
-                        }
-                    }
-                }
-                Log.i("service location","$geoPoint")
-            },{exception ->
-                Log.i("service location exception","$exception")
-            }
-        )
-    }
-
-    private fun stopLocationUpdates() {
-        Log.i("service location stopped", "stopped")
-        locationRepository.stopLocationUpdates()
-    }
+//    private fun getCurrentLocationUpdate(){
+//        locationRepository.getLocationUpdates(
+//            {location ->
+//                val geoPoint = GeoPoint(location.latitude, location.longitude)
+//                serviceScope.launch{
+//                    mainRepository.setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint).apply {
+//                        onSuccess {
+//                            Log.i("geofirestore location", "Location set successfully $geoPoint")
+//                        }
+//                        onFailure {
+//                            Log.i("geofirestore location", "error: ${it.message}")
+//                        }
+//                    }
+//                }
+//                Log.i("service location","$geoPoint")
+//            },{exception ->
+//                Log.i("service location exception","$exception")
+//            }
+//        )
+//    }
+//
+//    private fun stopLocationUpdates() {
+//        Log.i("service location stopped", "stopped")
+//        locationRepository.stopLocationUpdates()
+//    }
 
 }

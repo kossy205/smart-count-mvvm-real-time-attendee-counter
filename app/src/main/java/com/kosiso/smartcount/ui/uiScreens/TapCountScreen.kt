@@ -201,29 +201,6 @@ private fun SendLocationUpdateCommand(action: String){
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
-
-    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
-    when (val result = uploadResult.value) {
-        Idle -> {
-            Log.i("upload available user", "idle")
-        }
-        Loading -> {
-            Log.i("upload available user", "loading")
-        }
-        is Success -> {
-            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
-            Log.i("upload available user", "success")
-        }
-        is MainOperationState.Error -> {
-            val errorMessage = result.message
-            Log.i("upload available user", errorMessage)
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.Q)
-@Composable
 private fun TopIconSection(mainViewModel: MainViewModel){
 
     val context = LocalContext.current
@@ -327,7 +304,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
                 // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
-                CheckUploadToAvailableUsersDBResult(mainViewModel)
+//                CheckUploadToAvailableUsersDBResult(mainViewModel)
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -344,7 +321,8 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     }
                 )
                 mainViewModel.removeFromAvailableUserDB()
-                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
+                mainViewModel.stopLocationUpdates()
+//                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
                 // location action is sent to foreground once the online status is false.
                 // doesnt wait for any success
             }
@@ -1110,6 +1088,38 @@ private fun LaunchAppSetting(){
 
 
 
+
+
+
+
+
+
+
+
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@Composable
+private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
+
+    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
+    when (val result = uploadResult.value) {
+        Idle -> {
+            Log.i("upload available user", "idle")
+        }
+        Loading -> {
+            Log.i("upload available user", "loading")
+        }
+        is Success -> {
+            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
+            Log.i("upload available user", "success")
+        }
+        is MainOperationState.Error -> {
+            val errorMessage = result.message
+            Log.i("upload available user", errorMessage)
+        }
+    }
+}
+
 @Composable
 private fun SessionCountSection1(){
     Box(
@@ -1198,7 +1208,6 @@ private fun SessionCountSection1(){
         }
     }
 }
-
 
 @Composable
 fun RequestLocationPermission(permissions: Array<String>){
@@ -1312,22 +1321,3 @@ fun Context.findActivity(): ComponentActivity {
     }
     throw IllegalStateException("No ComponentActivity found")
 }
-
-//@OptIn(ExperimentalPermissionsApi::class)
-//@Composable
-//fun PermissionPartialOrPermanentDenial(){
-//    when {
-//        permissionState.allGranted -> {
-//            // all permissions granted
-//
-//        }
-//        permissionState.grantedPermissions.isNotEmpty() && permissionState.deniedPermissions.isNotEmpty() -> {
-//            // Partial grant case
-//
-//        }
-//        permissionState.permanentlyDeniedPermissions.isNotEmpty() -> {
-//            // Permanent denial case
-//
-//        }
-//    }
-//}
