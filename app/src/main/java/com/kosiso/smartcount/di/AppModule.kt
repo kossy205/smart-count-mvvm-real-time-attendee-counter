@@ -1,6 +1,7 @@
 package com.kosiso.smartcount.di
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
@@ -50,7 +51,8 @@ object AppModule {
     fun provideMainRepository(countDao: CountDao,
                               firebaseAuth: FirebaseAuth,
                               firestore: FirebaseFirestore,
-                              geoFirestore: GeoFirestore): MainRepository{
+                              geoFirestore: GeoFirestore
+    ): MainRepository{
         return MainRepoImpl(
             countDao,
             firebaseAuth,
@@ -72,6 +74,7 @@ object AppModule {
     fun provideGeoFirestore(
         firestore: FirebaseFirestore
     ): GeoFirestore{
+        Log.i("GeoFirestore", "Providing GeoFirestore instance")
         return GeoFirestore(firestore.collection(Constants.AVAILABLE_USERS))
     }
 

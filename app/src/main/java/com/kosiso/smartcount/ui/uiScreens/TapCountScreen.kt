@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -79,6 +78,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -88,21 +90,42 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import com.google.firebase.firestore.GeoPoint
+import com.kosiso.smartcount.database.CountDao
+import com.kosiso.smartcount.repository.MainRepoImpl
+import com.kosiso.smartcount.repository.MainRepository
+import kotlin.collections.mutableListOf
 
 
 @Preview(showBackground = true, backgroundColor = 0xFF00FF00)
 @Composable
 private fun Preview(){
-//    SessionCountSection()
-//    CountersItem()
+
+    // Mock selectedUsers list (replace User with your actual user class)
+    val userList = mutableListOf<User>(
+        User(
+            id = "user1",
+            name = "Demoo Kosi",
+            phone = "222",
+            email = "user1@gmail.com",
+            password = "user111",
+            image = "",
+        ),
+        User(
+            id = "user1",
+            name = "Kosi",
+            phone = "222",
+            email = "user1@gmail.com",
+            password = "user111",
+            image = "",
+        )
+    )
+
+    OnGoingSessionCount(userList)
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
 fun TapCountScreen(mainViewModel: MainViewModel){
-
-    mainViewModel.fetchAvailableUsers(GeoPoint(6.4396174, 5.5975804))
 
     SendCommandToService(Constants.ACTION_START)
     Log.i("tap count screen", "visible")
@@ -177,24 +200,6 @@ private fun SendCommandToService(action: String){
             Log.i("send command 2", "works")
         }
         Log.i("send command 3", "works")
-    }
-
-}
-
-@Composable
-private fun SendLocationUpdateCommand(action: String){
-    val context = LocalContext.current
-    LaunchedEffect(key1 = action) {
-        Log.i("send location command", "works")
-        Intent(context, Foreground::class.java).also{
-            Log.i("send location command 1", "works")
-            it.action = action
-            // this starts the service
-            // while the "startForeground(id.notification)" is what makes or promote it to a foreground
-            context.startService(it)
-            Log.i("send location command 2", "works")
-        }
-        Log.i("send location command 3", "works")
     }
 
 }
@@ -304,7 +309,6 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
                 // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
-//                CheckUploadToAvailableUsersDBResult(mainViewModel)
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -320,11 +324,10 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         }
                     }
                 )
-                mainViewModel.removeFromAvailableUserDB()
+                mainViewModel.removeGeoQueryEventListeners()
                 mainViewModel.stopLocationUpdates()
-//                SendLocationUpdateCommand(Constants.ACTION_STOP_LOCATION_UPDATE)
-                // location action is sent to foreground once the online status is false.
-                // doesnt wait for any success
+                mainViewModel.removeFromAvailableUserDB()
+//                mainViewModel.removeGeofirestoreLocation()
             }
 
             if(shouldRequestPermission){
@@ -432,6 +435,30 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
 
 @Composable
 private fun SessionCountSection(mainViewModel: MainViewModel){
+
+    var selectedUserListData = mainViewModel.selectedUserListData.collectAsState()
+    Log.i("selected counters list", "$selectedUserListData")
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .layoutId("session_count_section")
+    ){
+        if(selectedUserListData.value.isEmpty()){
+            InactiveSessionCount(mainViewModel)
+        }else{
+            // when u finish the ongoing session count or want to cancel it, ensure to empty the list in view model.
+            OnGoingSessionCount(selectedUserListData.value)
+        }
+    }
+
+
+}
+
+@Composable
+private fun InactiveSessionCount(mainViewModel: MainViewModel){
+    var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -466,7 +493,7 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
                                 color = White.copy(alpha = 0.8f),
                                 fontFamily = onest,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+                                fontSize = 16.sp
                             ),
                             modifier = Modifier.padding(bottom = 7.dp)
                         )
@@ -476,7 +503,7 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
                                 color = White.copy(alpha = 0.6f),
                                 fontFamily = onest,
                                 fontWeight = FontWeight.Medium,
-                                fontSize = 13.sp
+                                fontSize = 14.sp
                             )
                         )
                     }
@@ -486,8 +513,11 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
                         iconColor = White,
                         backgroundColor = White.copy(alpha = 0.2f),
                         onIconClick = {
+                            showDialog = true
+                            // the "canFetchAvailableUsers" has to come first,
+                            // so users that click this button would be able to fetch available users
+                            mainViewModel.canFetchAvailableUsers(true)
                             mainViewModel.onlineStatus(true)
-//                            ShowAddCountersDialog() { }
                         },
                         modifier = Modifier
                             .size(25.dp)
@@ -495,6 +525,73 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
                 }
 
             }
+        }
+    }
+
+    if(showDialog){
+        ShowAddCountersDialog(
+//            onDismiss = {
+//                // do nothing
+//            },
+            cancelButton = {
+                showDialog = false
+                mainViewModel.onlineStatus(false)
+            },
+            confirmButton = {selectedUserList ->
+                mainViewModel.setSelectedUserList(selectedUserList)
+                showDialog = false
+                if(selectedUserList.isEmpty()){
+                    mainViewModel.onlineStatus(false)
+                    Toast.makeText(context, "pls select at least one user to count with", Toast.LENGTH_LONG).show()
+                }
+            },
+            mainViewModel = mainViewModel
+        )
+    }
+}
+
+@Composable
+private fun OnGoingSessionCount(
+    selectedUsers: MutableList<User>
+){
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .fillMaxWidth()
+            .height(220.dp)
+            .background(White)
+    ){
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(16.dp)
+        ){
+            Text(
+                text = "Ongoing Session Count",
+                style = TextStyle(
+                    color = Black.copy(alpha = 0.8f),
+                    fontFamily = onest,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                ),
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+
+            LazyColumn {
+                items(
+                    items = selectedUsers,
+                    key = { it.id }
+                ) { user ->
+
+                    CountersItem(
+                        user = user
+                    )
+
+                }
+            }
+
         }
     }
 }
@@ -539,24 +636,6 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
             .fillMaxWidth()
             .layoutId("count_buttons_section"),
     ){
-
-//        Row(
-//            modifier = Modifier
-//                .fillMaxWidth(),
-//            horizontalArrangement = Arrangement.End,
-//            verticalAlignment = Alignment.CenterVertically
-//        ){
-//            Common.IconButtonDesign(
-//                iconId = R.drawable.ic_save,
-//                iconColor = White,
-//                backgroundColor = Pink,
-//                onIconClick = {
-//                    showDialog = true
-//                }
-//            )
-//        }
-//
-//        Spacer(modifier = Modifier.height(50.dp))
 
         Row(
             modifier = Modifier
@@ -748,23 +827,30 @@ private fun ShowCustomDialog(
 
 @Composable
 private fun ShowAddCountersDialog(
-    onDismiss: () -> Unit,
+//    onDismiss: () -> Unit,
     cancelButton: () -> Unit,
-    confirmButton: () -> Unit
+    confirmButton: (MutableList<User>) -> Unit,
+    mainViewModel: MainViewModel
 ){
-    Dialog(onDismissRequest = onDismiss){
+
+    var availableUsersList = mainViewModel.availableUsers.collectAsState()
+
+    var selectedUserList = mutableListOf<User>()
+
+    Dialog(onDismissRequest = {}){
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(1.dp),
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surface
         ){
 
             Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
             ) {
 
                 Text(
@@ -774,31 +860,66 @@ private fun ShowAddCountersDialog(
                         fontFamily = onest,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp
-                    )
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(15.dp)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                LazyColumn {
-//                    items(
-//                        items = count,
-//                        key = { it.id }
-//                    ) { count ->
-//
-//                        CountersItem(
-//                            addToList = TODO(),
-//                            removeFromList = TODO()
-//                        )
-//
-//                    }
+                /**
+                 * available users list and progress bar
+                 * if fetch list state is success, it shows list
+                 * else it shows progress abr
+                 */
+                when(val result = availableUsersList.value){
+                    Idle -> {
+                        ShowProgressBar()
+                        Log.i("display available user list", "Idle ")
+                    }
+                    Loading -> {
+                        ShowProgressBar()
+                        Log.i("display available user list", "loading ")
+                    }
+                    is Success -> {
+                        val availableUsersListData = result.data
+                        LazyColumn {
+                            items(
+                                items = availableUsersListData,
+                                key = { it.id }
+                            ) { user ->
 
+                                SelectCountersItem(
+                                    onCheckedChange = {isChecked ->
+                                        if(isChecked){
+                                            selectedUserList.add(user)
+                                            Log.i("selected list", "${selectedUserList}")
+                                        }else{
+                                            selectedUserList.remove(user)
+                                            Log.i("selected list", "${selectedUserList}")
+                                        }
+                                    },
+                                    mainViewModel = mainViewModel,
+                                    user = user
+                                )
+
+                            }
+                        }
+                    }
+                    is MainOperationState.Error -> {
+                        ShowProgressBar()
+                        val errorMessage = result.message
+                        Log.i("display available user list", errorMessage)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(15.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.Bottom
                 ){
@@ -820,10 +941,12 @@ private fun ShowAddCountersDialog(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     TextButton(
-                        onClick = confirmButton
+                        onClick = {
+                            confirmButton(selectedUserList)
+                        }
                     ) {
                         Text(
-                            text = "Save",
+                            text = "Start",
                             style = TextStyle(
                                 color = Pink,
                                 fontFamily = onest,
@@ -842,45 +965,96 @@ private fun ShowAddCountersDialog(
 }
 
 @Composable
-private fun CountersItem(
-    addToList: () -> Unit,
-    removeFromList: () -> Unit
+private fun SelectCountersItem(
+    onCheckedChange: (Boolean) -> Unit,
+    mainViewModel: MainViewModel,
+    user: User
 ){
-    var isChecked by remember { mutableStateOf(false) }
+    var isCheckedData = mainViewModel.isChecked.collectAsState()
+
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(45.dp)
-            .background(White)
-            .clickable{
-                !isChecked
+            .height(50.dp)
+            .background(
+                color = if (isCheckedData.value){
+                    Pink.copy(alpha = 0.1f)
+                }else{
+                    Color.Transparent
+                }
+            )
+            .clickable {
+                mainViewModel.isChecked(!isCheckedData.value)
+                onCheckedChange(!isCheckedData.value)
             }
     ){
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 2.dp)
+                .padding(start = 15.dp, end = 10.dp)
         ){
 
             Text(
-                text = "Kosiso",
+                text = user.name,
                 style = TextStyle(
                     color = Black,
                     fontFamily = onest,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 16.sp
-                ),
-                modifier = Modifier
-                    .weight(70f)
+                )
+            )
+
+            Checkbox(
+                checked = isCheckedData.value,
+                onCheckedChange = { isChecked ->
+                    mainViewModel.isChecked(!isCheckedData.value)
+                    onCheckedChange(isChecked)
+                },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = Pink
+                )
+            )
+            Log.i("isChecked data value", "${isCheckedData.value}")
+
+        }
+    }
+
+}
+
+@Composable
+private fun CountersItem(user: User){
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(Color.Transparent)
+    ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxSize()
+        ){
+
+            Text(
+                text = user.name,
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                )
             )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .weight(20f)
             ){
                 Text(
                     text = "999",
@@ -888,7 +1062,7 @@ private fun CountersItem(
                         color = Black,
                         fontFamily = onest,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 19.sp
+                        fontSize = 16.sp
                     )
                 )
                 Text(
@@ -898,26 +1072,6 @@ private fun CountersItem(
                         fontFamily = onest,
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp
-                    )
-                )
-            }
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .weight(10f)
-            ){
-                Checkbox(
-                    checked = isChecked,
-                    onCheckedChange = { isChecked ->
-                        if(isChecked){
-                            addToList()
-                        }else{
-                            removeFromList()
-                        }
-                    },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Pink
                     )
                 )
             }
@@ -1060,64 +1214,96 @@ private fun LaunchAppSetting(){
     settingsLauncher.launch(intent)
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
-
-    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
-    when (val result = uploadResult.value) {
-        Idle -> {
-            Log.i("upload available user", "idle")
-        }
-        Loading -> {
-            Log.i("upload available user", "loading")
-        }
-        is Success -> {
-            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
-            Log.i("upload available user", "success")
-        }
-        is MainOperationState.Error -> {
-            val errorMessage = result.message
-            Log.i("upload available user", errorMessage)
-        }
+private fun ShowProgressBar(){
+    Box(contentAlignment = Alignment.Center){
+        CircularProgressIndicator(
+            modifier = Modifier
+                .size(30.dp),
+            color = Pink,
+            strokeCap = StrokeCap.Round
+        )
     }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//@RequiresApi(Build.VERSION_CODES.Q)
+//@Composable
+//private fun CheckUploadToAvailableUsersDBResult(mainViewModel: MainViewModel){
+//
+//    val uploadResult = mainViewModel.uploadToAvailableUsersDBResult.collectAsState()
+//    when (val result = uploadResult.value) {
+//        Idle -> {
+//            Log.i("upload available user", "idle")
+//        }
+//        Loading -> {
+//            Log.i("upload available user", "loading")
+//        }
+//        is Success -> {
+//            SendLocationUpdateCommand(Constants.ACTION_START_LOCATION_UPDATE)
+//            Log.i("upload available user", "success")
+//        }
+//        is MainOperationState.Error -> {
+//            val errorMessage = result.message
+//            Log.i("upload available user", errorMessage)
+//        }
+//    }
+//}
+
+
+@Composable
+private fun SendLocationUpdateCommand(action: String){
+    val context = LocalContext.current
+    LaunchedEffect(key1 = action) {
+        Log.i("send location command", "works")
+        Intent(context, Foreground::class.java).also{
+            Log.i("send location command 1", "works")
+            it.action = action
+            // this starts the service
+            // while the "startForeground(id.notification)" is what makes or promote it to a foreground
+            context.startService(it)
+            Log.i("send location command 2", "works")
+        }
+        Log.i("send location command 3", "works")
+    }
+
 }
 
 @Composable
