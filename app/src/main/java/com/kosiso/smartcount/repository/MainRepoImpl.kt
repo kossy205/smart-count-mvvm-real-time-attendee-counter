@@ -87,11 +87,14 @@ class MainRepoImpl @Inject constructor(
 
     override suspend fun signInUser(email: String, password: String): Result<FirebaseUser> {
         return try{
+            Log.i("add To Available Users DB VM", "start")
             val authResult = firebaseAuth
                 .signInWithEmailAndPassword(email, password)
                 .await()
+            Log.i("add To Available Users DB VM", "done")
             Result.success(authResult.user!!)
         }catch (e: Exception){
+            Log.i("add To Available Users DB VM", "error: ${e.message}")
             Result.failure(e)
         }
     }
@@ -124,21 +127,32 @@ class MainRepoImpl @Inject constructor(
 
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
         return try {
+            Log.i("remove From Available User DB impl", "start")
             firestore.collection(Constants.AVAILABLE_USERS)
                 .document(getCurrentUser()?.uid.toString())
                 .delete()
                 .await()
+            Log.i("remove From Available User DB impl", "done")
             Result.success(Unit)
         }catch (e: Exception){
+            Log.i("remove From Available User DB impl", e.message.toString())
             Result.failure(e)
         }
     }
 
+    // no need for this, the "removeFromAvailableUsersDB()" already does this.
+    // no need for this.
+    // calling the below function after "removeFromAvailableUsersDB()" has been called ...
+    // would lead to an empty doc being created in firebase.
+    // This is because you're asking it to remove geofirelocation from a doc that has been removed already.
     override suspend fun removeGeofirestoreLocation(): Result<Unit> {
         return try {
+            Log.i("remove Geofirestore Location", "start")
             geoFirestore.removeLocation(getCurrentUser()?.uid.toString())
+            Log.i("remove Geofirestore Location", "done")
             Result.success(Unit)
         }catch (e: Exception){
+            Log.i("remove Geofirestore Location", "error")
             Result.failure(e)
         }
     }

@@ -31,6 +31,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     
     @Inject lateinit var locationRepository: LocationRepository
 
+    // used to make sure available user is fetched once and with the first geoPoint
+    // this way it doesnt keep fetching if there is a new location update every 5 sec
+    // the list on the screen no longer blinks
+    var hasFetchedAvailableUser = false
 
     val count: StateFlow<Int> = mainRepository.count
 
@@ -46,8 +50,23 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _onlineStatus = MutableStateFlow<Boolean>(false)
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
 
+    // for the check box in Tap Count Screen
+    private val _isChecked = MutableStateFlow<Boolean>(false)
+    val isChecked: StateFlow<Boolean> = _isChecked
+
+    // for list of users selected to be part of a counting session
+    private val _selectedUserListData = MutableStateFlow<MutableList<User>>(mutableListOf())
+    val selectedUserListData: StateFlow<MutableList<User>> = _selectedUserListData
+
+//    this would be true only for users that started a count session
+    private val _canFetchAvailableUsers = MutableStateFlow<Boolean>(false)
+    val canFetchAvailableUsers: StateFlow<Boolean> = _canFetchAvailableUsers
+
     private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
+
+    private val _availableUsers = MutableStateFlow<MainOperationState<List<User>>>(MainOperationState.Idle)
+    val availableUsers: StateFlow<MainOperationState<List<User>>> = _availableUsers
 
     private val _removeFromAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
     val removeFromAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _removeFromAvailableUsersDBResult
@@ -130,15 +149,18 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
 
     fun addToAvailableUsersDB(user: User){
+        Log.i("add To Available Users DB VM", "start")
         viewModelScope.launch{
             _uploadToAvailableUsersDBResult.value = MainOperationState.Loading
             val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
             uploadToAvailableUsers.onSuccess {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
                 getCurrentLocationUpdate()
+                Log.i("add To Available Users DB VM", "done")
             }
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+                Log.i("add To Available Users DB VM", "error ${it.message}")
 
             }
         }
@@ -149,9 +171,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             _removeFromAvailableUsersDBResult.value = MainOperationState.Loading
             val removeFromAvailableUsers = mainRepository.removeFromAvailableUsersDB()
             removeFromAvailableUsers.onSuccess {
-                mainRepository.removeGeofirestoreLocation()
+//                mainRepository.removeGeofirestoreLocation()
                 _removeFromAvailableUsersDBResult.value = MainOperationState.Success(Unit)
-
             }
             removeFromAvailableUsers.onFailure {
                 _removeFromAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
@@ -159,12 +180,31 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
-    
+
+//    fun removeGeofirestoreLocation(){
+//        viewModelScope.launch{
+//            mainRepository.removeGeofirestoreLocation()
+//        }
+//    }
+
     fun setLocationUsingGeoFirestore(docId: String, geoPoint: GeoPoint){
         viewModelScope.launch{
             val setLocationGeofirestore = mainRepository.setLocationUsingGeoFirestore(docId, geoPoint)
             setLocationGeofirestore.onSuccess {
                 Log.i("geofirestore location", "Location set successfully $geoPoint")
+
+                /**
+                 * Only users that started a count session can fetch available users.
+                 * the "" is used to ensure that "fetchAvailableUsers(geoPoint)" is called only once,
+                 * and with the first provided geoPoint. This will avoid continually fetching users ...
+                 * whenever location is been gotten every second.
+                 *
+                 */
+                 if(_canFetchAvailableUsers.value == true && !hasFetchedAvailableUser){
+                    fetchAvailableUsers(geoPoint)
+                     hasFetchedAvailableUser = true
+                }
+
             }
             setLocationGeofirestore.onFailure {
                 Log.i("geofirestore location", "error: ${it.message}")
@@ -209,6 +249,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
 
     fun fetchAvailableUsers(geoPoint: GeoPoint){
+
+        _availableUsers.value = MainOperationState.Loading
+
         Log.i("fetch Available Users", "start")
         val radius = 0.2
         geoQuery = mainRepository.queryAvailableUsers(geoPoint, radius)
@@ -217,6 +260,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         geoQueryEventListener = object : GeoQueryEventListener{
             override fun onGeoQueryError(exception: Exception) {
                 Log.i("geoquery error", "$exception")
+                _availableUsers.value = MainOperationState.Error(exception.message.toString())
             }
 
             override fun onGeoQueryReady() {
@@ -231,6 +275,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                     docFromDB.onSuccess {document ->
                         val user = document.toObject(User::class.java)!!
                         listOfAvailableUsersDoc.add(user)
+                        _availableUsers.value = MainOperationState.Success(listOfAvailableUsersDoc)
                         Log.i("available user doc", "$document")
                         Log.i("available users doc list", "$listOfAvailableUsersDoc")
                     }
@@ -252,6 +297,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     fun removeGeoQueryEventListeners(){
         if (isGeoQueryActive) {
+
+            _availableUsers.value = MainOperationState.Idle
+            hasFetchedAvailableUser = false
+
             geoQuery.removeGeoQueryEventListener(geoQueryEventListener)
             isGeoQueryActive = false
             Log.i("geoquery remove listener", "Listener removed")
@@ -299,5 +348,17 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         _onlineStatus.value = isOnline
     }
 
+    fun isChecked(isChecked: Boolean){
+        _isChecked.value = isChecked
+    }
+
+    fun setSelectedUserList(list: MutableList<User>){
+        _selectedUserListData.value = list
+        Log.i("add to selected counters list", "$selectedUserListData")
+    }
+
+    fun canFetchAvailableUsers(canFetchAvailableUsers: Boolean){
+        _canFetchAvailableUsers.value = canFetchAvailableUsers
+    }
 
 }

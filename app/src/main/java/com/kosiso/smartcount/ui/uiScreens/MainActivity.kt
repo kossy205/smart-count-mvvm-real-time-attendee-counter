@@ -69,7 +69,10 @@ import com.kosiso.smartcount.R
 import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
+import com.kosiso.smartcount.utils.AuthFlowNavigation
 import com.kosiso.smartcount.utils.Constants
+import com.kosiso.smartcount.utils.MainAppNavigation
+import com.kosiso.smartcount.utils.RootNavEnum
 import com.kosiso.smartcount.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -124,13 +127,13 @@ class MainActivity : ComponentActivity() {
     fun RootNavigation(navController: NavHostController, mainViewModel: MainViewModel){
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn()) "main_app" else "auth_flow"
+            startDestination = if (isLoggedIn()) RootNavEnum.MAIN_APP.route else RootNavEnum.AUTH_FLOW.route
         ) {
             // Auth/Intro Flow
             authNavGraph(navController)
 
             // Main App (with bottom navigation)
-            composable("main_app") {
+            composable(RootNavEnum.MAIN_APP.route) {
                 MainApp(mainViewModel)
             }
         }
@@ -142,37 +145,37 @@ class MainActivity : ComponentActivity() {
 
     fun NavGraphBuilder.authNavGraph(navController: NavController) {
         navigation(
-            startDestination = "intro_screen",
-            route = "auth_flow"
+            startDestination = AuthFlowNavigation.INTRO.route,
+            route = RootNavEnum.AUTH_FLOW.route
         ) {
-            composable("intro_screen") {
+            composable(AuthFlowNavigation.INTRO.route) {
 
                 IntroScreen(
                     onNavigateToLoginScreen = {
                         Log.i("intro btn 1", "pressed")
-                        navController.navigate("login_screen")
+                        navController.navigate(AuthFlowNavigation.LOGIN.route)
                     }
                 )
             }
-            composable("signUp_screen") {
+            composable(AuthFlowNavigation.SIGN_UP.route) {
                 SignUpScreen(mainViewModel){
                     mainViewModel.resetAuthState()
-                    navController.navigate("login_screen")
+                    navController.navigate(AuthFlowNavigation.LOGIN.route)
                 }
             }
-            composable("login_screen") {
+            composable(AuthFlowNavigation.LOGIN.route) {
                 LoginScreen(
                     // After login, navigate to main app and clear auth backstack
                     mainViewModel = mainViewModel,
                     onNavigateToMainScreen = {
                         mainViewModel.resetAuthState()
-                        navController.navigate("main_app") {
-                            popUpTo("auth_flow") { inclusive = true }
+                        navController.navigate(RootNavEnum.MAIN_APP.route) {
+                            popUpTo(RootNavEnum.AUTH_FLOW.route) { inclusive = true }
                         }
                     },
                     onNavigationToSignUpScreen = {
                         mainViewModel.resetAuthState()
-                        navController.navigate("signUp_screen")
+                        navController.navigate(AuthFlowNavigation.SIGN_UP.route)
                     }
                 )
             }
@@ -188,25 +191,25 @@ class MainActivity : ComponentActivity() {
             BottomNavItem(
                 id = UUID.randomUUID().toString(),
                 name = "CapCount",
-                route = "cap_count",
+                route = MainAppNavigation.CAP_COUNT.route,
                 icon = R.drawable.ic_capture1
             ),
             BottomNavItem(
                 id = UUID.randomUUID().toString(),
                 name = "TapCount",
-                route = "tap_count",
+                route = MainAppNavigation.TAP_COUNT.route,
                 icon = R.drawable.ic_step
             ),
             BottomNavItem(
                 id = UUID.randomUUID().toString(),
                 name = "Counts",
-                route = "counts",
+                route = MainAppNavigation.HISTORY.route,
                 icon = R.drawable.ic_arrange1
             ),
             BottomNavItem(
                 id = UUID.randomUUID().toString(),
                 name = "Profile",
-                route = "profile",
+                route = MainAppNavigation.PROFILE.route,
                 icon = R.drawable.ic_profile0
             )
         )
@@ -240,8 +243,8 @@ class MainActivity : ComponentActivity() {
          */
 
         val snackBarHostState = remember { SnackbarHostState() }
-        NavHost(navController = navController, startDestination = "cap_count"){
-            composable("cap_count"){
+        NavHost(navController = navController, startDestination = MainAppNavigation.CAP_COUNT.route){
+            composable(MainAppNavigation.CAP_COUNT.route){
                 CapCountScreen()
                 Common.ShowSnackBar(
                     snackBarHostState,
@@ -250,7 +253,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Log.i("Home screen Clicked", "Home screen Clicked")
             }
-            composable("tap_count"){
+            composable(MainAppNavigation.TAP_COUNT.route){
                 TapCountScreen(mainViewModel)
                 Common.ShowSnackBar(
                     snackBarHostState,
@@ -259,7 +262,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Log.i("Home 1 screen Clicked", "Home 1 screen Clicked")
             }
-            composable("counts"){
+            composable(MainAppNavigation.HISTORY.route){
                 CountHistoryScreen(mainViewModel)
                 Common.ShowSnackBar(
                     snackBarHostState,
@@ -268,7 +271,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Log.i("Home 2 screen Clicked", "Home 2 screen Clicked")
             }
-            composable("profile"){
+            composable(MainAppNavigation.PROFILE.route){
                 // Home 3 Screen
 
                 Common.ShowSnackBar(
@@ -337,9 +340,9 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?, navController: NavHostController) {
         when (intent?.action) {
             Constants.ACTION_SHOW_TAP_SCREEN -> {
-                navController.navigate("tap_count") {
+                navController.navigate(MainAppNavigation.TAP_COUNT.route) {
                     // Optional: Pop up to the start destination to avoid building up a large stack of destinations
-                    popUpTo("cap_count") {
+                    popUpTo(MainAppNavigation.CAP_COUNT.route) {
                         saveState = true
                     }
                     // Avoid multiple copies of the same destination
@@ -367,104 +370,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.size(24.dp)
                 )
             }
-//        Text(
-//            text = navItem.name,
-//            textAlign = TextAlign.Center,
-//            fontSize = 10.sp,
-//            modifier = Modifier.padding(top = 4.dp)
-//        )
             if(selected){
             }
         }
     }
-
-
-//    @OptIn(ExperimentalPermissionsApi::class)
-//    @Composable
-//    fun Permission1(){
-//        val context = LocalContext.current
-//        val lifecycleOwner = LocalLifecycleOwner.current
-//        var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
-//        var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
-//
-//        val permissionState = rememberPermissionState(
-//            Manifest.permission.CAMERA
-//        )
-//
-//        // Permission launcher for manual permission request
-//        val permissionLauncher = rememberLauncherForActivityResult(
-//            contract = ActivityResultContracts.RequestPermission(),
-//            onResult = { isGranted ->
-//                when {
-//                    isGranted -> {
-//                        // Permission was granted
-//                        Log.i("permission granted", "granted ${permissionState.status} and $isGranted")
-//                    }
-//                    permissionState.status.shouldShowRationale -> {
-//                        // Permission was denied, but we can ask again
-//                        showTemporarilyDeniedDialog = true
-//                        Log.i("permission denied", "temporal ${permissionState.status.shouldShowRationale}")
-//                    }
-//                    !permissionState.status.shouldShowRationale && !isGranted-> {
-//                        // Permission permanently denied
-//                        showPermanentlyDeniedDialog = true
-//                        Log.i("permission denied", "permanent ${!permissionState.status.shouldShowRationale} and ${!permissionState.status.isGranted}")
-//                    }
-//                }
-//            }
-//        )
-//
-//        // Launch permission request on start
-//        DisposableEffect(
-//            key1 = lifecycleOwner,
-//            effect = {
-//                val observer = LifecycleEventObserver { _, event ->
-//                    if (event == Lifecycle.Event.ON_START) {
-//                        // Only launch request if the permission is not granted
-//                        if (!permissionState.status.isGranted) {
-//                            permissionLauncher.launch(Manifest.permission.CAMERA)
-//                        }
-//                    }
-//                }
-//                lifecycleOwner.lifecycle.addObserver(observer)
-//
-//                onDispose {
-//                    lifecycleOwner.lifecycle.removeObserver(observer)
-//                }
-//            }
-//        )
-//
-//
-//        if(showTemporarilyDeniedDialog){
-//            Common.ShowDialog(
-//                titleText = "Camera Permission",
-//                dialogText = "Pls grant Camera permission to use this app.",
-//                positiveButtonText = "Grant",
-//                negativeButtonText = "Dismiss",
-//                confirmButtonClick = {
-//                    showTemporarilyDeniedDialog = false
-//                    permissionLauncher.launch(Manifest.permission.CAMERA)
-//                },
-//                dismissButtonClick = {
-//                    showTemporarilyDeniedDialog = false
-//                }
-//            )
-//        }
-//        if(showPermanentlyDeniedDialog){
-//            Common.ShowDialog(
-//                titleText = "Camera Permission",
-//                dialogText = "Camara permission is required for this app to work. You can go to settings and manually grant permission.",
-//                positiveButtonText = "Go to settings",
-//                negativeButtonText = "Dismiss",
-//                confirmButtonClick = {
-//                    showPermanentlyDeniedDialog = false
-//                },
-//                dismissButtonClick = {
-//                    showPermanentlyDeniedDialog = false
-//                }
-//            )
-//        }
-//    }
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -476,11 +385,6 @@ class MainActivity : ComponentActivity() {
         var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
         var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
 
-        // Define multiple permissions
-//        val permissions = listOf(
-//            Manifest.permission.CAMERA,
-//            Manifest.permission.POST_NOTIFICATIONS
-//        )
         val permissions = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
                 Manifest.permission.CAMERA,
