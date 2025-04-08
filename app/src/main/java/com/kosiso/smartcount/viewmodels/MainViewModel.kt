@@ -1,13 +1,12 @@
 package com.kosiso.smartcount.viewmodels
 
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.firestore.ListenerRegistration
 import com.kosiso.foodshare.repository.LocationRepository
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
@@ -38,6 +37,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     val count: StateFlow<Int> = mainRepository.count
 
+    private val firestoreUserListener = mutableMapOf<String, ListenerRegistration>()
+
     private val _roomOperationResult = MutableStateFlow<MainOperationState<List<Count>>>(MainOperationState.Loading)
     val roomOperationResult: StateFlow<MainOperationState<List<Count>>> = _roomOperationResult
 
@@ -51,8 +52,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
 
     // for the check box in Tap Count Screen
-    private val _isChecked = MutableStateFlow<Boolean>(false)
-    val isChecked: StateFlow<Boolean> = _isChecked
+    private val _checkedStates = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val checkedStates: StateFlow<Map<String, Boolean>> = _checkedStates
 
     // for list of users selected to be part of a counting session
     private val _selectedUserListData = MutableStateFlow<MutableList<User>>(mutableListOf())
@@ -64,6 +65,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
+
+    private val _uploadToSelectedCountUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
+    val uploadToSelectedCountUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToSelectedCountUsersDBResult
 
     private val _availableUsers = MutableStateFlow<MainOperationState<List<User>>>(MainOperationState.Idle)
     val availableUsers: StateFlow<MainOperationState<List<User>>> = _availableUsers
@@ -161,6 +165,24 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
                 Log.i("add To Available Users DB VM", "error ${it.message}")
+
+            }
+        }
+    }
+
+    fun addListOfSelectedUsersToDB(users: List<User>){
+        Log.i("add To selected count Users DB VM", "start")
+        viewModelScope.launch{
+            _uploadToSelectedCountUsersDBResult.value = MainOperationState.Loading
+            val uploadToSelectedUsersDb = mainRepository.addListOfSelectedUsersToDB(users)
+            uploadToSelectedUsersDb.onSuccess {
+                _uploadToSelectedCountUsersDBResult.value = MainOperationState.Success(Unit)
+                Log.i("add To selected count Users DB VM", "success")
+
+            }
+            uploadToSelectedUsersDb.onFailure {
+                _uploadToSelectedCountUsersDBResult.value = MainOperationState.Error(it.message.toString())
+                Log.i("add To selected count Users DB VM", "error: ${it.message}")
 
             }
         }
@@ -309,7 +331,45 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
+    fun addUserListener(documentID: String){
+        Log.i("add User listener VM", "start")
+        val userListener = mainRepository.addUserListener(
+            documentId = documentID,
+            onUpdate = {userResult->
+                userResult.apply{
 
+                    onSuccess { updatedUser ->
+                        Log.i("add User listener VM", "success")
+                        // Updates the user in the selected users list if present
+                        val selectedIndex =
+                            _selectedUserListData.value.indexOfFirst { it.id == documentID }
+                        if (selectedIndex != -1) {
+                            val updatedSelectedList = _selectedUserListData.value.toMutableList()
+                            updatedSelectedList[selectedIndex] = updatedUser
+                            _selectedUserListData.value = updatedSelectedList
+                        }
+                    }
+                    onFailure { exception ->
+                        Log.i("add User listener VM", "error: ${exception.message}")
+                    }
+                }
+            }
+        )
+        firestoreUserListener[documentID] = userListener
+    }
+
+    fun updatedUserCount(countValue: Long){
+        viewModelScope.launch{
+            mainRepository.updatedUserCount(countValue).apply {
+                onSuccess {
+
+                }
+                onFailure {
+
+                }
+            }
+        }
+    }
 
     fun getCurrentUser(): FirebaseUser?{
         return mainRepository.getCurrentUser()
@@ -318,11 +378,19 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     fun increment(){
         mainRepository.increment()
+        if(_onlineStatus.value == true){
+            val count = count.value
+            updatedUserCount(count.toLong())
+        }
         Log.i("count increase 1", "${count}")
     }
 
     fun decrement(){
         mainRepository.decrement()
+        if(_onlineStatus.value == true){
+            val count = count.value
+            updatedUserCount(count.toLong())
+        }
         Log.i("count decrease 1", "${count}")
     }
 
@@ -348,8 +416,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         _onlineStatus.value = isOnline
     }
 
-    fun isChecked(isChecked: Boolean){
-        _isChecked.value = isChecked
+    fun setCheckedState(userId: String, isChecked: Boolean){
+        val currentStates = _checkedStates.value.toMutableMap()
+        currentStates[userId] = isChecked
+        _checkedStates.value = currentStates
     }
 
     fun setSelectedUserList(list: MutableList<User>){
@@ -359,6 +429,13 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     fun canFetchAvailableUsers(canFetchAvailableUsers: Boolean){
         _canFetchAvailableUsers.value = canFetchAvailableUsers
+    }
+
+    override fun onCleared() {
+        firestoreUserListener.values.forEach { it.remove() }
+        firestoreUserListener.clear()
+        removeGeoQueryEventListeners()
+        super.onCleared()
     }
 
 }

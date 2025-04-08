@@ -10,6 +10,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.kosiso.smartcount.database.CountDao
@@ -17,10 +18,12 @@ import com.kosiso.smartcount.database.RoomDatabase
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.utils.Constants
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import org.imperiumlabs.geofirestore.GeoFirestore
 import org.imperiumlabs.geofirestore.GeoQuery
 import javax.inject.Inject
@@ -125,6 +128,28 @@ class MainRepoImpl @Inject constructor(
         }
     }
 
+    override suspend fun addListOfSelectedUsersToDB(users: List<User>):  Result<Unit> {
+        return try {
+            val collectionRef = firestore.collection(Constants.SELECTED_COUNT_USERS)
+            val batch = firestore.batch()
+
+            users.forEach{user->
+                // If user.id is null, auto-generate a document ID; otherwise, use the provided ID
+                val docRef = user.id?.let { collectionRef.document(it) } ?: collectionRef.document()
+                batch.set(docRef, user)
+            }
+            // Commits the batch and wait for it to complete
+            withContext(Dispatchers.IO) {
+                batch
+                    .commit()
+                    .await()
+            }
+            Result.success(Unit)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
         return try {
             Log.i("remove From Available User DB impl", "start")
@@ -197,6 +222,40 @@ class MainRepoImpl @Inject constructor(
                 .await()
 
             Result.success(document)
+        }catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
+    override fun addUserListener(
+        documentID: String,
+        onUpdate: (Result<User>) -> Unit): ListenerRegistration {
+
+        return firestore
+                .collection(Constants.AVAILABLE_USERS)
+                .document(documentID)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        onUpdate(Result.failure(error))
+                        return@addSnapshotListener
+                    }
+                    val updatedUser = snapshot?.toObject(User::class.java)
+                    if (updatedUser != null) {
+                        onUpdate(Result.success(updatedUser))
+                    } else {
+                        onUpdate(Result.failure(Exception("Failed to parse user data from snapshot")))
+                    }
+                }
+    }
+
+    override suspend fun updatedUserCount(countValue: Long): Result<Unit> {
+        return try {
+            firestore
+                .collection(Constants.AVAILABLE_USERS)
+                .document(getCurrentUser()?.uid!!)
+                .update(Constants.COUNT, countValue)
+                .await()
+            Result.success(Unit)
         }catch (e: Exception){
             Result.failure(e)
         }
