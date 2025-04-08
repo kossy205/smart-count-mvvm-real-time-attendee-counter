@@ -128,27 +128,7 @@ class MainRepoImpl @Inject constructor(
         }
     }
 
-    override suspend fun addListOfSelectedUsersToDB(users: List<User>):  Result<Unit> {
-        return try {
-            val collectionRef = firestore.collection(Constants.SELECTED_COUNT_USERS)
-            val batch = firestore.batch()
 
-            users.forEach{user->
-                // If user.id is null, auto-generate a document ID; otherwise, use the provided ID
-                val docRef = user.id?.let { collectionRef.document(it) } ?: collectionRef.document()
-                batch.set(docRef, user)
-            }
-            // Commits the batch and wait for it to complete
-            withContext(Dispatchers.IO) {
-                batch
-                    .commit()
-                    .await()
-            }
-            Result.success(Unit)
-        }catch (e: Exception){
-            Result.failure(e)
-        }
-    }
 
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
         return try {

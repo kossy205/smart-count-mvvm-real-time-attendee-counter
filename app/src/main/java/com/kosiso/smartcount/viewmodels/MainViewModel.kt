@@ -170,24 +170,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
-    fun addListOfSelectedUsersToDB(users: List<User>){
-        Log.i("add To selected count Users DB VM", "start")
-        viewModelScope.launch{
-            _uploadToSelectedCountUsersDBResult.value = MainOperationState.Loading
-            val uploadToSelectedUsersDb = mainRepository.addListOfSelectedUsersToDB(users)
-            uploadToSelectedUsersDb.onSuccess {
-                _uploadToSelectedCountUsersDBResult.value = MainOperationState.Success(Unit)
-                Log.i("add To selected count Users DB VM", "success")
-
-            }
-            uploadToSelectedUsersDb.onFailure {
-                _uploadToSelectedCountUsersDBResult.value = MainOperationState.Error(it.message.toString())
-                Log.i("add To selected count Users DB VM", "error: ${it.message}")
-
-            }
-        }
-    }
-
     fun removeFromAvailableUserDB(){
         viewModelScope.launch{
             _removeFromAvailableUsersDBResult.value = MainOperationState.Loading

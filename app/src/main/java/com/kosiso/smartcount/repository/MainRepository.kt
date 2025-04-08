@@ -43,7 +43,6 @@ interface MainRepository {
 
     suspend fun getDocFromDB(collection: String, documentId: String): Result<DocumentSnapshot>
 
-    suspend fun addListOfSelectedUsersToDB(users: List<User>): Result<Unit>
     // listens for changes in a user doc eg, count
     fun addUserListener(
         documentId: String,
