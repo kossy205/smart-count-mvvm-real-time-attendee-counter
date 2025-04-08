@@ -79,6 +79,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -236,10 +237,8 @@ private fun TopIconSection(mainViewModel: MainViewModel){
     }
     Log.i("permission in icon section granted?", "$arePermissionsGranted")
 
-    // get user details success/error
-    LaunchedEffect(Unit) {
-        mainViewModel.getUserDetails()
-    }
+
+    // user details gotten would be used to upload to available users collection on the db
     val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
     val userDetail: User? = when (val result = getUserDetails.value) {
         Idle -> {
@@ -259,7 +258,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
             val errorMessage = result.message
             Log.i("getting user details", errorMessage)
             isOnline = false
-            Toast.makeText(context, "Error coming online, make sure you have a good internet connection and try again", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Error getting user details, can't come online. Try again.", Toast.LENGTH_LONG).show()
             null
         }
     }
@@ -306,6 +305,10 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         mainViewModel.onlineStatus(!isOnline)
                     }
                 )
+                // get user details success/error
+                LaunchedEffect(Unit) {
+                    mainViewModel.getUserDetails()
+                }
                 // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
                 // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
@@ -539,6 +542,17 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
             },
             confirmButton = {selectedUserList ->
                 mainViewModel.setSelectedUserList(selectedUserList)
+
+                /**
+                 * from the "selectedUserList", extract the docId of each user.
+                 * Add firebase listener to listen for changes in each of the user document,
+                 * using the docId
+                 */
+                val idListOfSelectedUsers = selectedUserList.map { it.id }
+                idListOfSelectedUsers.forEach {documentId->
+                    mainViewModel.addUserListener(documentId)
+                }
+
                 showDialog = false
                 if(selectedUserList.isEmpty()){
                     mainViewModel.onlineStatus(false)
@@ -554,12 +568,16 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
 private fun OnGoingSessionCount(
     selectedUsers: MutableList<User>
 ){
+    val userCounts = selectedUsers.map { it.count }
+    var totalCount = userCounts.sum()
+    Log.i("total users count", "$totalCount")
+
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(24.dp))
             .fillMaxWidth()
-            .height(220.dp)
+            .height(270.dp)
             .background(White)
     ){
         Column(
@@ -576,6 +594,12 @@ private fun OnGoingSessionCount(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp
                 ),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Divider(
+                color = Color.Black.copy(alpha = 0.1f),
+                thickness = 1.dp,
                 modifier = Modifier.padding(bottom = 10.dp)
             )
 
@@ -591,6 +615,8 @@ private fun OnGoingSessionCount(
 
                 }
             }
+
+
 
         }
     }
@@ -970,8 +996,8 @@ private fun SelectCountersItem(
     mainViewModel: MainViewModel,
     user: User
 ){
-    var isCheckedData = mainViewModel.isChecked.collectAsState()
-
+    var isCheckedData = mainViewModel.checkedStates.collectAsState()
+    val isChecked = isCheckedData.value[user.id] ?: false // Default to false if not set
 
     Box(
         contentAlignment = Alignment.Center,
@@ -979,15 +1005,16 @@ private fun SelectCountersItem(
             .fillMaxWidth()
             .height(50.dp)
             .background(
-                color = if (isCheckedData.value){
+                color = if (isChecked){
                     Pink.copy(alpha = 0.1f)
                 }else{
                     Color.Transparent
                 }
             )
             .clickable {
-                mainViewModel.isChecked(!isCheckedData.value)
-                onCheckedChange(!isCheckedData.value)
+                val newCheckedState = !isChecked
+                mainViewModel.setCheckedState(user.id, newCheckedState)
+                onCheckedChange(newCheckedState)
             }
     ){
         Row(
@@ -1009,10 +1036,10 @@ private fun SelectCountersItem(
             )
 
             Checkbox(
-                checked = isCheckedData.value,
-                onCheckedChange = { isChecked ->
-                    mainViewModel.isChecked(!isCheckedData.value)
-                    onCheckedChange(isChecked)
+                checked = isChecked,
+                onCheckedChange = { newCheckedState ->
+                    mainViewModel.setCheckedState(user.id, newCheckedState)
+                    onCheckedChange(newCheckedState)
                 },
                 colors = CheckboxDefaults.colors(
                     checkedColor = Pink
@@ -1057,7 +1084,7 @@ private fun CountersItem(user: User){
                 modifier = Modifier
             ){
                 Text(
-                    text = "999",
+                    text = "${user.count}",
                     style = TextStyle(
                         color = Black,
                         fontFamily = onest,
@@ -1065,6 +1092,7 @@ private fun CountersItem(user: User){
                         fontSize = 16.sp
                     )
                 )
+                Spacer(modifier = Modifier.width(1.dp))
                 Text(
                     text = "ppl",
                     style = TextStyle(

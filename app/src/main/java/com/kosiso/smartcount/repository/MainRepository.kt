@@ -3,6 +3,7 @@ package com.kosiso.smartcount.repository
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.GeoPoint
+import com.google.firebase.firestore.ListenerRegistration
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,14 @@ interface MainRepository {
     suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
 
     suspend fun getDocFromDB(collection: String, documentId: String): Result<DocumentSnapshot>
+
+    suspend fun addListOfSelectedUsersToDB(users: List<User>): Result<Unit>
+    // listens for changes in a user doc eg, count
+    fun addUserListener(
+        documentId: String,
+        onUpdate: (Result<User>) -> Unit
+    ): ListenerRegistration
+    suspend fun updatedUserCount(countValue: Long): Result<Unit>
 
 
 }

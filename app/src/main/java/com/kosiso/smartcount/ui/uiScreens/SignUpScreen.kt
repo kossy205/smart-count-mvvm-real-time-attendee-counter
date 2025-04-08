@@ -92,7 +92,8 @@ private fun SignUpFieldsSection(
         phoneInput,
         emailInput,
         passwordInput,
-        ""
+        "",
+        0
     )
 
     CheckAuthOperationResult(mainViewModel, user)
