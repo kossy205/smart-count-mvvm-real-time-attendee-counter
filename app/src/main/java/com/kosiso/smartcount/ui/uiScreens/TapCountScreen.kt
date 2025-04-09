@@ -91,9 +91,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import com.kosiso.smartcount.database.CountDao
-import com.kosiso.smartcount.repository.MainRepoImpl
-import com.kosiso.smartcount.repository.MainRepository
+import com.kosiso.smartcount.utils.CountType
 import kotlin.collections.mutableListOf
 
 
@@ -121,7 +119,7 @@ private fun Preview(){
         )
     )
 
-    OnGoingSessionCount(userList)
+//    OnGoingSessionCount(mainViewModel, userList)
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -290,7 +288,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 iconColor = White,
                 backgroundColor = Pink,
                 onIconClick = {
-                    mainViewModel.reset()
+                    mainViewModel.resetCount()
                 }
             )
 
@@ -450,7 +448,7 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
             InactiveSessionCount(mainViewModel)
         }else{
             // when u finish the ongoing session count or want to cancel it, ensure to empty the list in view model.
-            OnGoingSessionCount(selectedUserListData.value)
+            OnGoingSessionCount(mainViewModel,selectedUserListData.value)
         }
     }
 
@@ -566,9 +564,19 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
 
 @Composable
 private fun OnGoingSessionCount(
+    mainViewModel: MainViewModel,
     selectedUsers: MutableList<User>
 ){
     val totalCount = totalSessionCount(selectedUsers)
+    var showDialog by remember { mutableStateOf(false) }
+    var textInput by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    val countHistory = Count(
+        count = totalCount.toInt(),
+        countName = "$textInput",
+        countType = CountType.SESSION_COUNT.type
+    )
 
     Box(
         modifier = Modifier
@@ -626,29 +634,98 @@ private fun OnGoingSessionCount(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
             ){
-                Text(
-                    text = "${totalCount}",
-                    style = TextStyle(
-                        color = Pink,
-                        fontFamily = onest,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 24.sp
+                Row(
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.Bottom
+                ){
+
+                    TextButton(
+                        onClick = {
+                            mainViewModel.finishSessionCount()
+                        }
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = TextStyle(
+                                color = Black,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    TextButton(
+                        onClick = {
+                            showDialog = true
+                        }
+                    ) {
+                        Text(
+                            text = "Save",
+                            style = TextStyle(
+                                color = Pink,
+                                fontFamily = onest,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        )
+                    }
+
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ){
+                    Text(
+                        text = "${totalCount}",
+                        style = TextStyle(
+                            color = Pink,
+                            fontFamily = onest,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 24.sp
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.width(1.dp))
-                Text(
-                    text = "ppl",
-                    style = TextStyle(
-                        color = Black,
-                        fontFamily = onest,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
+                    Spacer(modifier = Modifier.width(1.dp))
+                    Text(
+                        text = "ppl",
+                        style = TextStyle(
+                            color = Black,
+                            fontFamily = onest,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        )
                     )
-                )
+                }
+            }
+
+
+        }
+    }
+
+    if (showDialog) {
+        if (totalCount > 0) {
+            ShowCustomDialog(
+                onDismiss = { showDialog = false },
+                cancelButton = { showDialog = false },
+                confirmButton = {
+                    mainViewModel.insertCount(countHistory)
+                    mainViewModel.finishSessionCount()
+                    showDialog = false
+                },
+                textInput = textInput,
+                onTextInputChange = { textInput = it }
+            )
+        } else {
+            LaunchedEffect(Unit) {
+                showDialog = false
+                Toast.makeText(context, "Count must be greater than 0", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -666,7 +743,7 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
     val countHistory = Count(
         count = displayedCount,
         countName = "$textInput",
-        countType = "Individual"
+        countType = CountType.INDIVIDUAL.type
     )
 
 
@@ -678,6 +755,7 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
                 confirmButton = {
                     mainViewModel.insertCount(countHistory)
                     showDialog = false
+                    mainViewModel.resetCount()
                 },
                 textInput = textInput,
                 onTextInputChange = { textInput = it }
@@ -1045,9 +1123,9 @@ private fun SelectCountersItem(
             .fillMaxWidth()
             .height(50.dp)
             .background(
-                color = if (isChecked){
+                color = if (isChecked) {
                     Pink.copy(alpha = 0.1f)
-                }else{
+                } else {
                     Color.Transparent
                 }
             )
