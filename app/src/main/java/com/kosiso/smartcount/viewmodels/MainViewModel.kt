@@ -1,7 +1,6 @@
 package com.kosiso.smartcount.viewmodels
 
 import android.util.Log
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
@@ -66,20 +65,14 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _uploadToAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
     val uploadToAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToAvailableUsersDBResult
 
-    private val _uploadToSelectedCountUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Idle)
-    val uploadToSelectedCountUsersDBResult: StateFlow<MainOperationState<Unit>> = _uploadToSelectedCountUsersDBResult
-
     private val _availableUsers = MutableStateFlow<MainOperationState<List<User>>>(MainOperationState.Idle)
     val availableUsers: StateFlow<MainOperationState<List<User>>> = _availableUsers
 
     private val _removeFromAvailableUsersDBResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
     val removeFromAvailableUsersDBResult: StateFlow<MainOperationState<Unit>> = _removeFromAvailableUsersDBResult
 
-    private val _getUserDetailsResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Loading)
+    private val _getUserDetailsResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
     val getUserDetailsResult: StateFlow<MainOperationState<User>> = _getUserDetailsResult
-
-    private val _setLocationWithGeoFireResult = MutableStateFlow<MainOperationState<Unit>>(MainOperationState.Loading)
-    val setLocationWithGeoFireResult: StateFlow<MainOperationState<Unit>> = _setLocationWithGeoFireResult
 
 
 
@@ -353,10 +346,25 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
+    fun finishSessionCount(){
+        resetCount()
+
+        _onlineStatus.value = false
+        _checkedStates.value = emptyMap()
+        _selectedUserListData.value = mutableListOf()
+        _canFetchAvailableUsers.value = false
+        _uploadToAvailableUsersDBResult.value = MainOperationState.Idle
+        _availableUsers.value = MainOperationState.Idle
+
+
+        firestoreUserListener.values.forEach { it.remove() }
+        firestoreUserListener.clear()
+        removeGeoQueryEventListeners()
+    }
+
     fun getCurrentUser(): FirebaseUser?{
         return mainRepository.getCurrentUser()
     }
-
 
     fun increment(){
         mainRepository.increment()
@@ -376,7 +384,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         Log.i("count decrease 1", "${count}")
     }
 
-    fun reset(){
+    fun resetCount(){
         mainRepository.resetCount()
         Log.i("count reset 1", "${count}")
     }

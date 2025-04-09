@@ -48,6 +48,7 @@ import com.kosiso.smartcount.ui.theme.Black
 import com.kosiso.smartcount.ui.theme.Pink
 import com.kosiso.smartcount.ui.theme.White
 import com.kosiso.smartcount.ui.theme.onest
+import com.kosiso.smartcount.utils.CountType
 import com.kosiso.smartcount.viewmodels.MainViewModel
 import java.sql.Timestamp
 import java.util.Date
@@ -210,12 +211,22 @@ private fun CountItem(count: Count){
                 .weight(0.15f),
             contentAlignment = Alignment.Center
         ){
-            Common.IconButtonDesign(
-                iconId = R.drawable.ic_profile0,
-                iconColor = Black,
-                backgroundColor = White,
-                onIconClick = {}
-            )
+            if(count.countType == CountType.INDIVIDUAL.type){
+                Common.IconButtonDesign(
+                    iconId = R.drawable.ic_profile0,
+                    iconColor = Black,
+                    backgroundColor = White,
+                    onIconClick = {}
+                )
+            }
+            if(count.countType == CountType.SESSION_COUNT.type){
+                Common.IconButtonDesign(
+                    iconId = R.drawable.ic_multiple_profiles,
+                    iconColor = Black,
+                    backgroundColor = White,
+                    onIconClick = {}
+                )
+            }
         }
 
         Box(
