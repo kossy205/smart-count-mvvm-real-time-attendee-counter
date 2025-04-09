@@ -568,10 +568,7 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
 private fun OnGoingSessionCount(
     selectedUsers: MutableList<User>
 ){
-    val userCounts = selectedUsers.map { it.count }
-    var totalCount = userCounts.sum()
-    Log.i("total users count", "$totalCount")
-
+    val totalCount = totalSessionCount(selectedUsers)
 
     Box(
         modifier = Modifier
@@ -583,9 +580,10 @@ private fun OnGoingSessionCount(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(270.dp)
                 .padding(16.dp)
-        ){
+        ) {
+            // Title
             Text(
                 text = "Ongoing Session Count",
                 style = TextStyle(
@@ -597,30 +595,65 @@ private fun OnGoingSessionCount(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
+            // Divider
             Divider(
                 color = Color.Black.copy(alpha = 0.1f),
                 thickness = 1.dp,
                 modifier = Modifier.padding(bottom = 10.dp)
             )
 
-            LazyColumn {
+            // LazyColumn takes remaining center space
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f) // This makes it take available space between title and total count
+            ) {
                 items(
                     items = selectedUsers,
                     key = { it.id }
                 ) { user ->
-
                     CountersItem(
                         user = user
                     )
-
                 }
             }
 
-            //  total count UI design here
+            // Total count at bottom
+            Divider(
+                color = Color.Black.copy(alpha = 0.1f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
 
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ){
+                Text(
+                    text = "${totalCount}",
+                    style = TextStyle(
+                        color = Pink,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 24.sp
+                    )
+                )
+                Spacer(modifier = Modifier.width(1.dp))
+                Text(
+                    text = "ppl",
+                    style = TextStyle(
+                        color = Black,
+                        fontFamily = onest,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
+                    )
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun CountButtonsSection(mainViewModel: MainViewModel){
@@ -733,6 +766,13 @@ private fun CountButtonsSection(mainViewModel: MainViewModel){
             }
         }
     }
+}
+
+private fun totalSessionCount(selectedUsers: MutableList<User>): Long{
+    val userCounts = selectedUsers.map { it.count }
+    var totalCount = userCounts.sum()
+    Log.i("total users count", "$totalCount")
+    return totalCount
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
