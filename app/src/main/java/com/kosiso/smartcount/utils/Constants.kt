@@ -19,5 +19,6 @@ object Constants {
     const val SELECTED_COUNT_USERS = "selected_count_user"
 
     const val COUNT = "count"
+    const val COUNT_PARTNERS = "countPartners"
 
 }

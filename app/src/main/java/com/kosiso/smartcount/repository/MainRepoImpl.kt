@@ -1,20 +1,14 @@
 package com.kosiso.smartcount.repository
 
 import android.util.Log
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.Firebase
-import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.firestore
 import com.kosiso.smartcount.database.CountDao
-import com.kosiso.smartcount.database.RoomDatabase
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.utils.Constants
@@ -78,71 +72,85 @@ class MainRepoImpl @Inject constructor(
     }
 
     override suspend fun signUpUser(email: String, password: String): Result<FirebaseUser> {
-        return try {
-            val authResult = firebaseAuth
-                .createUserWithEmailAndPassword(email, password)
-                .await()
-            Result.success(authResult.user!!)
-        }catch (e: Exception){
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try {
+                val authResult = firebaseAuth
+                    .createUserWithEmailAndPassword(email, password)
+                    .await()
+                Result.success(authResult.user!!)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun signInUser(email: String, password: String): Result<FirebaseUser> {
-        return try{
-            Log.i("add To Available Users DB VM", "start")
-            val authResult = firebaseAuth
-                .signInWithEmailAndPassword(email, password)
-                .await()
-            Log.i("add To Available Users DB VM", "done")
-            Result.success(authResult.user!!)
-        }catch (e: Exception){
-            Log.i("add To Available Users DB VM", "error: ${e.message}")
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try{
+                Log.i("add To Available Users DB VM", "start")
+                val authResult = firebaseAuth
+                    .signInWithEmailAndPassword(email, password)
+                    .await()
+                Log.i("add To Available Users DB VM", "done")
+                Result.success(authResult.user!!)
+            }catch (e: Exception){
+                Log.i("add To Available Users DB VM", "error: ${e.message}")
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun registerUserInDB(user: User): Result<Unit> {
-        return try{
-            firestore
-                .collection(Constants.USERS)
-                .document(getCurrentUser()!!.uid)
-                .set(user, SetOptions.merge())
-                .await()
-            Result.success(Unit)
-        }catch (e: Exception){
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try{
+                firestore
+                    .collection(Constants.USERS)
+                    .document(getCurrentUser()!!.uid)
+                    .set(user, SetOptions.merge())
+                    .await()
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun addToAvailableUsersDB(user: User): Result<Unit> {
-        return try{
-            firestore
-                .collection(Constants.AVAILABLE_USERS)
-                .document(getCurrentUser()!!.uid)
-                .set(user, SetOptions.merge())
-                .await()
-            Result.success(Unit)
-        }catch (e: Exception){
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try{
+                firestore
+                    .collection(Constants.AVAILABLE_USERS)
+                    .document(getCurrentUser()!!.uid)
+                    .set(user, SetOptions.merge())
+                    .await()
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
+
+
     }
 
 
 
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
-        return try {
-            Log.i("remove From Available User DB impl", "start")
-            firestore.collection(Constants.AVAILABLE_USERS)
-                .document(getCurrentUser()?.uid.toString())
-                .delete()
-                .await()
-            Log.i("remove From Available User DB impl", "done")
-            Result.success(Unit)
-        }catch (e: Exception){
-            Log.i("remove From Available User DB impl", e.message.toString())
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try {
+                Log.i("remove From Available User DB impl", "start")
+                firestore.collection(Constants.AVAILABLE_USERS)
+                    .document(getCurrentUser()?.uid.toString())
+                    .delete()
+                    .await()
+                Log.i("remove From Available User DB impl", "done")
+                Result.success(Unit)
+            }catch (e: Exception){
+                Log.i("remove From Available User DB impl", e.message.toString())
+                Result.failure(e)
+            }
         }
+
+
     }
 
     // no need for this, the "removeFromAvailableUsersDB()" already does this.
@@ -151,39 +159,47 @@ class MainRepoImpl @Inject constructor(
     // would lead to an empty doc being created in firebase.
     // This is because you're asking it to remove geofirelocation from a doc that has been removed already.
     override suspend fun removeGeofirestoreLocation(): Result<Unit> {
-        return try {
-            Log.i("remove Geofirestore Location", "start")
-            geoFirestore.removeLocation(getCurrentUser()?.uid.toString())
-            Log.i("remove Geofirestore Location", "done")
-            Result.success(Unit)
-        }catch (e: Exception){
-            Log.i("remove Geofirestore Location", "error")
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try {
+                Log.i("remove Geofirestore Location", "start")
+                geoFirestore.removeLocation(getCurrentUser()?.uid.toString())
+                Log.i("remove Geofirestore Location", "done")
+                Result.success(Unit)
+            }catch (e: Exception){
+                Log.i("remove Geofirestore Location", "error")
+                Result.failure(e)
+            }
         }
+
     }
 
     override suspend fun getUserDetails(): Result<User> {
-        return try {
-            val document = firestore.collection(Constants.USERS)
-                .document(getCurrentUser()?.uid.toString())
-                .get()
-                .await()
+        return withContext(Dispatchers.IO){
+            try {
+                val document = firestore.collection(Constants.USERS)
+                    .document(getCurrentUser()?.uid.toString())
+                    .get()
+                    .await()
 
-            val user = document.toObject(User::class.java)
-                ?: return Result.failure(Exception("User not found"))
+                val user = document.toObject(User::class.java)
+                    ?: return@withContext Result.failure(Exception("User not found"))
 
-            Result.success(user)
-        }catch (e: Exception){
-            Result.failure(e)
+                Result.success(user)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
+
     }
 
     override suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit> {
-        return try{
-            geoFirestore.setLocation(userId, geoPoint)
-            Result.success(Unit)
-        }catch (e: Exception){
-            Result.failure(e)
+        return withContext(Dispatchers.IO){
+            try{
+                geoFirestore.setLocation(userId, geoPoint)
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
     }
 
@@ -195,15 +211,17 @@ class MainRepoImpl @Inject constructor(
         collection: String,
         documentId: String
     ): Result<DocumentSnapshot> {
-        return try {
-            val document = firestore.collection(collection)
-                .document(documentId)
-                .get()
-                .await()
+        return withContext(Dispatchers.IO){
+            try {
+                val document = firestore.collection(collection)
+                    .document(documentId)
+                    .get()
+                    .await()
 
-            Result.success(document)
-        }catch (e: Exception){
-            Result.failure(e)
+                Result.success(document)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
     }
 
@@ -228,16 +246,32 @@ class MainRepoImpl @Inject constructor(
                 }
     }
 
-    override suspend fun updatedUserCount(countValue: Long): Result<Unit> {
-        return try {
-            firestore
-                .collection(Constants.AVAILABLE_USERS)
-                .document(getCurrentUser()?.uid!!)
-                .update(Constants.COUNT, countValue)
-                .await()
-            Result.success(Unit)
-        }catch (e: Exception){
-            Result.failure(e)
+    override suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit> {
+        return withContext(Dispatchers.IO){
+            try {
+                firestore
+                    .collection(Constants.AVAILABLE_USERS)
+                    .document(getCurrentUser()?.uid!!)
+                    .update(Constants.COUNT, countValue)
+                    .await()
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateUserCountPartnersInFirebase(countPartners: List<String>): Result<Unit> {
+        return withContext(Dispatchers.IO){
+            try {
+                firestore
+                    .collection(Constants.AVAILABLE_USERS)
+                    .document(getCurrentUser()?.uid!!)
+                    .update(Constants.COUNT_PARTNERS, countPartners)
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
         }
     }
 

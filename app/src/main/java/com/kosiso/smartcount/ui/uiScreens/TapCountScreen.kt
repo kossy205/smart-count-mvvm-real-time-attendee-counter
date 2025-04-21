@@ -310,6 +310,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
                 // so to get location updates, "addToAvailableUsersDB" need to be successful first
                 mainViewModel.addToAvailableUsersDB(user)
+                mainViewModel.addUserListener()
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -328,7 +329,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                 mainViewModel.removeGeoQueryEventListeners()
                 mainViewModel.stopLocationUpdates()
                 mainViewModel.removeFromAvailableUserDB()
-//                mainViewModel.removeGeofirestoreLocation()
+                mainViewModel.finishSessionCount()
             }
 
             if(shouldRequestPermission){
@@ -438,7 +439,7 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
 private fun SessionCountSection(mainViewModel: MainViewModel){
 
     var selectedUserListData = mainViewModel.selectedUserListData.collectAsState()
-    Log.i("selected counters list", "$selectedUserListData")
+    Log.i("selected counters list", "${selectedUserListData.value}")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -547,9 +548,8 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                  * using the docId
                  */
                 val idListOfSelectedUsers = selectedUserList.map { it.id }
-                idListOfSelectedUsers.forEach {documentId->
-                    mainViewModel.addUserListener(documentId)
-                }
+
+                mainViewModel.updateUserCountPartnersInFirebase(idListOfSelectedUsers)
 
                 showDialog = false
                 if(selectedUserList.isEmpty()){

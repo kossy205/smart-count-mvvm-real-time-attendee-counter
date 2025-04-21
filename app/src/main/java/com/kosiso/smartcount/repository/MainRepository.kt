@@ -48,7 +48,8 @@ interface MainRepository {
         documentId: String,
         onUpdate: (Result<User>) -> Unit
     ): ListenerRegistration
-    suspend fun updatedUserCount(countValue: Long): Result<Unit>
+    suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit>
+    suspend fun updateUserCountPartnersInFirebase(countPartners: List<String>): Result<Unit>
 
 
 }
