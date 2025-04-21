@@ -1,7 +1,10 @@
 package com.kosiso.smartcount.viewmodels
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.GeoPoint
@@ -36,7 +39,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     val count: StateFlow<Int> = mainRepository.count
 
-    private val firestoreUserListener = mutableMapOf<String, ListenerRegistration>()
+    private val userListener = mutableMapOf<String, ListenerRegistration>()
+    private val countPartnerListener = mutableMapOf<String, ListenerRegistration>()
+
+    private var listOfCountPartners = mutableListOf<User>()
 
     private val _roomOperationResult = MutableStateFlow<MainOperationState<List<Count>>>(MainOperationState.Loading)
     val roomOperationResult: StateFlow<MainOperationState<List<Count>>> = _roomOperationResult
@@ -58,7 +64,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _selectedUserListData = MutableStateFlow<MutableList<User>>(mutableListOf())
     val selectedUserListData: StateFlow<MutableList<User>> = _selectedUserListData
 
-//    this would be true only for users that started a count session
+//  this would be true only for users that started a count session
     private val _canFetchAvailableUsers = MutableStateFlow<Boolean>(false)
     val canFetchAvailableUsers: StateFlow<Boolean> = _canFetchAvailableUsers
 
@@ -75,6 +81,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     val getUserDetailsResult: StateFlow<MainOperationState<User>> = _getUserDetailsResult
 
 
+    private val _countPartnersList = MutableLiveData<List<String>>(emptyList())
+    val countPartnersList: LiveData<List<String>> = _countPartnersList
+
+
 
     init {// Launches once when the view model comes live
         Log.i("launch count view model", "launched")
@@ -88,6 +98,18 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
             }catch (e:Exception){
                 _roomOperationResult.value = MainOperationState.Error(e.message ?: "Error fetching count history")
+            }
+
+
+
+
+            //
+            countPartnersList.asFlow().collect{
+                if(it.isNotEmpty()){
+                    it.forEach{countPartnerId->
+                        addFirebaseUserListener(countPartnerId)
+                    }
+                }
             }
         }
     }
@@ -262,7 +284,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
             override fun onGeoQueryReady() {
                 Log.i("geoquery Ready 1", "onGeoQueryReady")
-
             }
 
             override fun onKeyEntered(documentID: String, location: GeoPoint) {
@@ -306,23 +327,38 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
-    fun addUserListener(documentID: String){
-        Log.i("add User listener VM", "start")
-        val userListener = mainRepository.addUserListener(
+
+    fun addFirebaseUserListener(documentID: String){
+        Log.i("add User listener VM", "${documentID}")
+        removeCountPartnerListener()
+
+        val countPartnerListener = mainRepository.addUserListener(
             documentId = documentID,
             onUpdate = {userResult->
                 userResult.apply{
 
                     onSuccess { updatedUser ->
-                        Log.i("add User listener VM", "success")
+
+                        Log.i("add User listener VM", "success $documentID")
                         // Updates the user in the selected users list if present
                         val selectedIndex =
                             _selectedUserListData.value.indexOfFirst { it.id == documentID }
+
+                        Log.i("selectedUserListData 1", "${_selectedUserListData.value}")
+
                         if (selectedIndex != -1) {
                             val updatedSelectedList = _selectedUserListData.value.toMutableList()
                             updatedSelectedList[selectedIndex] = updatedUser
                             _selectedUserListData.value = updatedSelectedList
+                            Log.i("selectedUserListData 2", "${_selectedUserListData.value}")
+                        }else{
+                            listOfCountPartners.add(updatedUser)
+                            setCountPartnerUserList(listOfCountPartners)
+                            Log.i("selectedUserListData 3", "${_selectedUserListData.value}")
                         }
+                        Log.i("selectedUserListData 4", "${_selectedUserListData.value}")
+                        Log.i("listOfCountPartners", "${listOfCountPartners}")
+
                     }
                     onFailure { exception ->
                         Log.i("add User listener VM", "error: ${exception.message}")
@@ -330,17 +366,79 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
             }
         )
-        firestoreUserListener[documentID] = userListener
+        this@MainViewModel.countPartnerListener[documentID] = countPartnerListener
     }
 
-    fun updatedUserCount(countValue: Long){
+    fun updateUserCountInFirebase(countValue: Long){
         viewModelScope.launch{
-            mainRepository.updatedUserCount(countValue).apply {
+            mainRepository.updateUserCountInFirebase(countValue).apply {
                 onSuccess {
-
+                    Log.i("user count update", "success")
                 }
                 onFailure {
+                    Log.i("user count update", "failed ${it.message}")
+                }
+            }
+        }
+    }
 
+    fun removeUserListener(){
+        userListener.values.forEach { it.remove() }
+        userListener.clear()
+    }
+    fun removeCountPartnerListener(){
+        countPartnerListener.values.forEach { it.remove() }
+        countPartnerListener.clear()
+    }
+    fun removeAllFirebaseListeners(){
+        removeUserListener()
+        removeCountPartnerListener()
+    }
+
+    // listens for changes in current user
+    fun addUserListener(){
+        removeAllFirebaseListeners()
+
+        val currentUserId = getCurrentUser()?.uid.toString()
+        var userListner = mainRepository.addUserListener(
+            documentId = currentUserId,
+            onUpdate = {updatedUserResult->
+                updatedUserResult.apply {
+
+                    onSuccess {updatedUser->
+                        val countPartners = updatedUser.countPartners
+                        if(countPartners.isEmpty()){
+                            Log.i("count partners", "empty $countPartners")
+                            _selectedUserListData.value = mutableListOf<User>()
+                            listOfCountPartners = mutableListOf()
+                            removeCountPartnerListener()
+                        }else{
+                            Log.i("count partners", "$countPartners")
+                            _countPartnersList.value = countPartners
+                            countPartners.forEach{countPartnerId->
+                                addFirebaseUserListener(countPartnerId)
+                            }
+                            removeUserListener()
+                        }
+                    }
+
+                    onFailure {
+                        Log.i("count partners", "${it.message}")
+                    }
+                }
+            }
+        )
+        userListener[currentUserId] = userListner
+    }
+
+    fun updateUserCountPartnersInFirebase(countPartners: List<String>){
+        viewModelScope.launch{
+            mainRepository.updateUserCountPartnersInFirebase(countPartners).apply {
+                onSuccess {
+                    Log.i("user count partners update", "success")
+                }
+                onFailure {
+                    Log.i("user count partners update", "failed ${it.message}")
                 }
             }
         }
@@ -351,14 +449,15 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
         _onlineStatus.value = false
         _checkedStates.value = emptyMap()
-        _selectedUserListData.value = mutableListOf()
+        _selectedUserListData.value = mutableListOf<User>()
+        listOfCountPartners.clear()
+        listOfCountPartners = mutableListOf<User>()
         _canFetchAvailableUsers.value = false
         _uploadToAvailableUsersDBResult.value = MainOperationState.Idle
         _availableUsers.value = MainOperationState.Idle
 
-
-        firestoreUserListener.values.forEach { it.remove() }
-        firestoreUserListener.clear()
+        removeAllFirebaseListeners()
+        // the below might cause bug since its being called when theres no geoquery listner available
         removeGeoQueryEventListeners()
     }
 
@@ -370,7 +469,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         mainRepository.increment()
         if(_onlineStatus.value == true){
             val count = count.value
-            updatedUserCount(count.toLong())
+            updateUserCountInFirebase(count.toLong())
         }
         Log.i("count increase 1", "${count}")
     }
@@ -379,7 +478,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         mainRepository.decrement()
         if(_onlineStatus.value == true){
             val count = count.value
-            updatedUserCount(count.toLong())
+            updateUserCountInFirebase(count.toLong())
         }
         Log.i("count decrease 1", "${count}")
     }
@@ -416,14 +515,20 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         _selectedUserListData.value = list
         Log.i("add to selected counters list", "$selectedUserListData")
     }
+    // the "_selectedUserListData" is used to represent both selected users data and count partners
+    // CountPartnerUserList is for users that are not the session count started
+    // SelectedUserList is for the users that stared the count session
+    fun setCountPartnerUserList(list: MutableList<User>){
+        _selectedUserListData.value = list
+        Log.i("add to selected counters list", "$selectedUserListData")
+    }
 
     fun canFetchAvailableUsers(canFetchAvailableUsers: Boolean){
         _canFetchAvailableUsers.value = canFetchAvailableUsers
     }
 
     override fun onCleared() {
-        firestoreUserListener.values.forEach { it.remove() }
-        firestoreUserListener.clear()
+        removeAllFirebaseListeners()
         removeGeoQueryEventListeners()
         super.onCleared()
     }
