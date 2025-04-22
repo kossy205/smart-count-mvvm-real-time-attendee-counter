@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.util.Log
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -61,8 +60,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 import com.kosiso.smartcount.ui.menu.BottomNavItem
 import com.kosiso.smartcount.ui.ui_utils.Common
 import com.kosiso.smartcount.R
@@ -73,6 +70,7 @@ import com.kosiso.smartcount.utils.AuthFlowNavigation
 import com.kosiso.smartcount.utils.Constants
 import com.kosiso.smartcount.utils.MainAppNavigation
 import com.kosiso.smartcount.utils.RootNavEnum
+import com.kosiso.smartcount.utils.SplashNavEnum
 import com.kosiso.smartcount.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -127,14 +125,38 @@ class MainActivity : ComponentActivity() {
     fun RootNavigation(navController: NavHostController, mainViewModel: MainViewModel){
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn()) RootNavEnum.MAIN_APP.route else RootNavEnum.AUTH_FLOW.route
+            startDestination = RootNavEnum.SPLASH_FLOW.route
         ) {
+            // Splash Screen
+            splashScreenNavGraph(navController)
+
             // Auth/Intro Flow
             authNavGraph(navController)
 
             // Main App (with bottom navigation)
             composable(RootNavEnum.MAIN_APP.route) {
                 MainApp(mainViewModel)
+            }
+        }
+    }
+
+
+    fun NavGraphBuilder.splashScreenNavGraph(navController: NavHostController){
+        navigation(
+            startDestination = SplashNavEnum.SPLASH_SCREEN.route,
+            route = RootNavEnum.SPLASH_FLOW.route
+        ) {
+            composable(SplashNavEnum.SPLASH_SCREEN.route) {
+                SplashScreen(
+                    // After splashscreen, navigate to either mainApp or Auth Flow and clear auth backstack
+                    onNavigateToNextScreen = {
+                        navController.navigate(
+                            if (isLoggedIn()) RootNavEnum.MAIN_APP.route else RootNavEnum.AUTH_FLOW.route
+                        ) {
+                            popUpTo(RootNavEnum.SPLASH_FLOW.route) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
