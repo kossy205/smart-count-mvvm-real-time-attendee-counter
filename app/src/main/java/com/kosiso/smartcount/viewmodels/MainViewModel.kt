@@ -64,7 +64,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _selectedUserListData = MutableStateFlow<MutableList<User>>(mutableListOf())
     val selectedUserListData: StateFlow<MutableList<User>> = _selectedUserListData
 
-//  this would be true only for users that started a count session
+    // this would be true only for users that started a count session
     private val _canFetchAvailableUsers = MutableStateFlow<Boolean>(false)
     val canFetchAvailableUsers: StateFlow<Boolean> = _canFetchAvailableUsers
 
@@ -86,7 +86,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
 
 
-    init {// Launches once when the view model comes live
+    init {
+        // Launches once when the view model comes live
         Log.i("launch count view model", "launched")
         viewModelScope.launch{// Launched once, but collects indefinitely
             _roomOperationResult.value = MainOperationState.Loading
@@ -99,6 +100,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }catch (e:Exception){
                 _roomOperationResult.value = MainOperationState.Error(e.message ?: "Error fetching count history")
             }
+
 
 
 
