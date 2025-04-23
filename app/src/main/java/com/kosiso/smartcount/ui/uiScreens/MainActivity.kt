@@ -24,7 +24,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -105,12 +104,12 @@ class MainActivity : ComponentActivity() {
 
             Permission()
 
-            val navController = rememberNavController()
-            navControllerState = navController
+            val rootNavController = rememberNavController()
+            navControllerState = rootNavController
 
-            handleIntent(intent, navController)
+            handleIntent(intent, rootNavController)
 
-            RootNavigation(navController, mainViewModel)
+            RootNavigation(rootNavController, mainViewModel)
         }
     }
 
@@ -122,20 +121,24 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    fun RootNavigation(navController: NavHostController, mainViewModel: MainViewModel){
+    fun RootNavigation(rootNavController: NavHostController, mainViewModel: MainViewModel){
         NavHost(
-            navController = navController,
+            navController = rootNavController,
             startDestination = RootNavEnum.SPLASH_FLOW.route
         ) {
             // Splash Screen
-            splashScreenNavGraph(navController)
+            splashScreenNavGraph(rootNavController)
 
             // Auth/Intro Flow
-            authNavGraph(navController)
+            authNavGraph(rootNavController)
 
             // Main App (with bottom navigation)
             composable(RootNavEnum.MAIN_APP.route) {
-                MainApp(mainViewModel)
+                /**
+                 * MainApp has a navigation and navController of its own called mainAppNavController.
+                 * the "rootNavController" is to navigate from this MainApp to a navgraph under the RootNavigation.
+                 */
+                MainApp(mainViewModel,rootNavController)
             }
         }
     }
@@ -205,9 +208,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MainApp(mainViewModel: MainViewModel){
+    fun MainApp(mainViewModel: MainViewModel, rootNavController: NavHostController){
         // another nav controller, not same with root. Its unique to MainApp
-        val navController = rememberNavController()
+        val mainAppNavController = rememberNavController()
 
         val bottomNavItems = listOf<BottomNavItem>(
             BottomNavItem(
@@ -240,19 +243,23 @@ class MainActivity : ComponentActivity() {
             bottomBar = {
                 BottomNavigationBar(
                     navItems = bottomNavItems,
-                    navController = navController,
+                    navController = mainAppNavController,
                     onItemClick = {
-                        navController.navigate(it.route)
+                        mainAppNavController.navigate(it.route)
                     }
                 )
             }
         ){
-            Navigation(navController = navController, mainViewModel = mainViewModel)
+            Navigation(
+                mainAppNavController = mainAppNavController,
+                rootNavController = rootNavController,
+                mainViewModel = mainViewModel
+            )
         }
     }
 
     @Composable
-    fun Navigation(navController: NavHostController, mainViewModel: MainViewModel){
+    fun Navigation(mainAppNavController: NavHostController, rootNavController: NavHostController, mainViewModel: MainViewModel){
 
         /**
          * viewModel() -> If you wanted the view model class to be scoped to only a particular
@@ -265,41 +272,28 @@ class MainActivity : ComponentActivity() {
          */
 
         val snackBarHostState = remember { SnackbarHostState() }
-        NavHost(navController = navController, startDestination = MainAppNavigation.CAP_COUNT.route){
+        NavHost(navController = mainAppNavController, startDestination = MainAppNavigation.CAP_COUNT.route){
             composable(MainAppNavigation.CAP_COUNT.route){
                 CapCountScreen()
-                Common.ShowSnackBar(
-                    snackBarHostState,
-                    "Home screen Clicked",
-                    SnackbarDuration.Long
-                )
                 Log.i("Home screen Clicked", "Home screen Clicked")
             }
             composable(MainAppNavigation.TAP_COUNT.route){
                 TapCountScreen(mainViewModel)
-                Common.ShowSnackBar(
-                    snackBarHostState,
-                    "Home 1 screen Clicked",
-                    SnackbarDuration.Long
-                )
                 Log.i("Home 1 screen Clicked", "Home 1 screen Clicked")
             }
             composable(MainAppNavigation.HISTORY.route){
                 CountHistoryScreen(mainViewModel)
-                Common.ShowSnackBar(
-                    snackBarHostState,
-                    "Home 2 screen Clicked",
-                    SnackbarDuration.Long
-                )
                 Log.i("Home 2 screen Clicked", "Home 2 screen Clicked")
             }
             composable(MainAppNavigation.PROFILE.route){
                 // Home 3 Screen
-
-                Common.ShowSnackBar(
-                    snackBarHostState,
-                    "Home 3 screen Clicked",
-                    SnackbarDuration.Long
+                ProfileScreen(
+                    mainViewModel,
+                    onNavigateToIntroScreen = {
+                        rootNavController.navigate(RootNavEnum.AUTH_FLOW.route) {
+                            popUpTo(RootNavEnum.MAIN_APP.route) { inclusive = true }
+                        }
+                    }
                 )
                 Log.i("Home 3 screen Clicked", "Home 3 screen Clicked")
             }

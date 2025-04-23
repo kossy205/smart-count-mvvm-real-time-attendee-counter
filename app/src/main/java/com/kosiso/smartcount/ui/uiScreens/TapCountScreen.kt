@@ -384,7 +384,7 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
                     color = Black,
                     fontFamily = onest,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 40.sp
+                    fontSize = 45.sp
                 )
             )
 
@@ -406,32 +406,32 @@ private fun CountDetailsSection(mainViewModel: MainViewModel){
 
         Spacer(modifier = Modifier.height(1.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            Text(
-                text = "Max in a Section:",
-                style = TextStyle(
-                    color = Black.copy(alpha = 0.3f),
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.width(2.dp))
-
-            Text(
-                text = "50",
-                style = TextStyle(
-                    color = Black,
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
-                )
-            )
-        }
+//        Row(
+//            horizontalArrangement = Arrangement.Start,
+//            verticalAlignment = Alignment.CenterVertically
+//        ){
+//            Text(
+//                text = "Max in a Section:",
+//                style = TextStyle(
+//                    color = Black.copy(alpha = 0.3f),
+//                    fontFamily = onest,
+//                    fontWeight = FontWeight.Medium,
+//                    fontSize = 14.sp
+//                )
+//            )
+//
+//            Spacer(modifier = Modifier.width(2.dp))
+//
+//            Text(
+//                text = "50",
+//                style = TextStyle(
+//                    color = Black,
+//                    fontFamily = onest,
+//                    fontWeight = FontWeight.Medium,
+//                    fontSize = 14.sp
+//                )
+//            )
+//        }
     }
 }
 

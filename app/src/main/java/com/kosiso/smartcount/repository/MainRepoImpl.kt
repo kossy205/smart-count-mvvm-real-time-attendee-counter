@@ -9,9 +9,11 @@ import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.kosiso.smartcount.database.CountDao
+import com.kosiso.smartcount.database.UserDao
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.utils.Constants
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ import javax.inject.Inject
 
 class MainRepoImpl @Inject constructor(
     val countDao: CountDao,
+    val userDao: UserDao,
     val firebaseAuth: FirebaseAuth,
     val firestore: FirebaseFirestore,
     val geoFirestore: GeoFirestore
@@ -70,6 +73,31 @@ class MainRepoImpl @Inject constructor(
         countDao.deleteCountById(countId)
         Log.i("delete count", "deleted")
     }
+
+    override suspend fun insertUserInToRoom(user: User): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                userDao.insertUser(user)
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateUserInToRoom(newName: String): Result<Unit> {
+        return withContext(Dispatchers.IO){
+            try {
+                userDao.updateUser(newName)
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+
+
+
 
     override suspend fun signUpUser(email: String, password: String): Result<FirebaseUser> {
         return withContext(Dispatchers.IO){
@@ -270,6 +298,32 @@ class MainRepoImpl @Inject constructor(
                     .update(Constants.COUNT_PARTNERS, countPartners)
                 Result.success(Unit)
             }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun updateUserDetails(userId: String, newName: String): Result<Unit> {
+        return withContext(Dispatchers.IO){
+            try {
+                firestore
+                    .collection(Constants.USERS)
+                    .document(userId)
+                    .update(Constants.NAME, newName)
+                Result.success(Unit)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun getUserDetailsFromRoomDB(): Result<User> {
+        return withContext(Dispatchers.IO){
+            try {
+                val user = userDao.getUserById()
+                Result.success(user)
+            }catch (e: Exception){
+
                 Result.failure(e)
             }
         }

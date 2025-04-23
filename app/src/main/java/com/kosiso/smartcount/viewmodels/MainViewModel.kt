@@ -56,6 +56,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _onlineStatus = MutableStateFlow<Boolean>(false)
     val onlineStatus: StateFlow<Boolean> = _onlineStatus
 
+
     // for the check box in Tap Count Screen
     private val _checkedStates = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val checkedStates: StateFlow<Map<String, Boolean>> = _checkedStates
@@ -80,32 +81,27 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _getUserDetailsResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
     val getUserDetailsResult: StateFlow<MainOperationState<User>> = _getUserDetailsResult
 
+    private val _updateUserDetailsResult = MutableStateFlow<MainOperationState<String>>(MainOperationState.Idle)
+    val updateUserDetailsResult: StateFlow<MainOperationState<String>> = _updateUserDetailsResult
+
+    private val _getUserDetailsFromRoomDBResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
+    val getUserDetailsFromRoomDBResult: StateFlow<MainOperationState<User>> = _getUserDetailsFromRoomDBResult
+
 
     private val _countPartnersList = MutableLiveData<List<String>>(emptyList())
     val countPartnersList: LiveData<List<String>> = _countPartnersList
+
+//    private val _userUpdatedSuccess = MutableLiveData<List<String>>(emptyList())
+//    val userUpdatedSuccess: LiveData<List<String>> = _userUpdatedSuccess
 
 
 
     init {
         // Launches once when the view model comes live
         Log.i("launch count view model", "launched")
-        viewModelScope.launch{// Launched once, but collects indefinitely
-            _roomOperationResult.value = MainOperationState.Loading
-            Log.i("launch count view model 1", "launched")
-            try {
-                mainRepository.getAllCountList().collect{it->
-                    _roomOperationResult.value = MainOperationState.Success(it)
-                    Log.i("all count history V.model", "$it")
-                }
-            }catch (e:Exception){
-                _roomOperationResult.value = MainOperationState.Error(e.message ?: "Error fetching count history")
-            }
+        getAllCountHistoryList()
 
-
-
-
-
-            //
+        viewModelScope.launch{
             countPartnersList.asFlow().collect{
                 if(it.isNotEmpty()){
                     it.forEach{countPartnerId->
@@ -115,6 +111,24 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
+
+    fun getAllCountHistoryList(){
+        Log.i("launch count view model", "launched")
+        viewModelScope.launch {// Launched once, but collects indefinitely
+            _roomOperationResult.value = MainOperationState.Loading
+            Log.i("launch count view model 1", "launched")
+            try {
+                mainRepository.getAllCountList().collect { it ->
+                    _roomOperationResult.value = MainOperationState.Success(it)
+                    Log.i("all count history V.model", "$it")
+                }
+            } catch (e: Exception) {
+                _roomOperationResult.value =
+                    MainOperationState.Error(e.message ?: "Error fetching count history")
+            }
+        }
+    }
+
     /**
      * Sign up
      */
@@ -147,6 +161,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
              signInResult.onSuccess {firebaseUser->
                  _authOperationResult.value = MainOperationState.Success(firebaseUser)
                  Log.i("logging in user", "success")
+                 
+                 getUserToInsertIntoRoomDB()
              }
              signInResult.onFailure {
                  _authOperationResult.value = MainOperationState.Error(it.message.toString())
@@ -154,6 +170,19 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
              }
          }
      }
+
+    fun getUserToInsertIntoRoomDB(){
+        viewModelScope.launch{
+            mainRepository.getUserDetails().apply {
+                onSuccess { user->
+                    insertUserIntoRoomDB(user)
+                }
+                onFailure {
+                    Log.i("get user details for roomDB", "error getting user details to insert into room: ${it.message}")
+                }
+            }
+        }
+    }
     
     fun registerNewUserInDB(user: User){
         viewModelScope.launch{
@@ -161,6 +190,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             val registerUserInDBResult = mainRepository.registerUserInDB(user)
             registerUserInDBResult.onSuccess {
                 _registerOperationResult.value = MainOperationState.Success(Unit)
+                insertUserIntoRoomDB(user)
             }
             registerUserInDBResult.onFailure {
                 _registerOperationResult.value = MainOperationState.Error(it.message.toString())
@@ -244,6 +274,29 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             getUserDetails.onFailure {
                 _getUserDetailsResult.value = MainOperationState.Error(it.message.toString())
 
+            }
+        }
+    }
+
+    fun insertUserIntoRoomDB(user: User){
+        val user = User(
+            id = user.id,
+            name = user.name,
+            phone = user.phone,
+            email = user.email,
+            password = user.password,
+            image = user.image,
+            count = user.count,
+            countPartners = user.countPartners
+        )
+        viewModelScope.launch{
+            mainRepository.insertUserInToRoom(user).apply {
+                onSuccess {
+                    Log.i("insert User Into RoomDB", "success")
+                }
+                onFailure {
+                    Log.i("insert User Into RoomDB", "failed: ${it.message}")
+                }
             }
         }
     }
@@ -446,6 +499,52 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
+    fun updateUserDetails(newName: String){
+        viewModelScope.launch{
+            val userId = getCurrentUser()!!.uid
+            mainRepository.updateUserDetails(userId, newName).apply {
+                onSuccess {
+                    //always triggerring fix the bug
+                    updateUserInToRoomDB(newName)
+                }
+                onFailure {
+                    _updateUserDetailsResult.value = MainOperationState
+                        .Error(it.message.toString())
+                }
+            }
+        }
+    }
+
+    fun updateUserInToRoomDB(newName: String){
+        viewModelScope.launch{
+            mainRepository.updateUserInToRoom(newName).apply {
+                onSuccess {
+                    _updateUserDetailsResult.value = MainOperationState
+                        .Success("User updated successfully")
+                }
+                onFailure {
+                    _updateUserDetailsResult.value = MainOperationState
+                        .Error(it.message.toString())
+                }
+            }
+        }
+    }
+
+
+
+    fun getUserDetailsFromRoomDB(){
+        viewModelScope.launch{
+            mainRepository.getUserDetailsFromRoomDB().apply {
+                onSuccess { user->
+                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Success(user)
+                }
+                onFailure {
+                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Error(it.message.toString())
+                }
+            }
+        }
+    }
+
     fun finishSessionCount(){
         resetCount()
 
@@ -465,6 +564,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     fun getCurrentUser(): FirebaseUser?{
         return mainRepository.getCurrentUser()
+    }
+
+    fun signOut(){
+        return mainRepository.signOut()
     }
 
     fun increment(){
@@ -502,6 +605,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             mainRepository.deleteCount(countId)
         }
     }
+
 
     fun onlineStatus(isOnline: Boolean){
         _onlineStatus.value = isOnline
