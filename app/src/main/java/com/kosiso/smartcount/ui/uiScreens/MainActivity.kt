@@ -245,7 +245,22 @@ class MainActivity : ComponentActivity() {
                     navItems = bottomNavItems,
                     navController = mainAppNavController,
                     onItemClick = {
-                        mainAppNavController.navigate(it.route)
+                        /**
+                         * The if statement below doesn't execute the "mainAppNavController.navigate" if ...
+                         * the current route is the route a user is trying to navigate to.
+                         * i.e if a user is in profile route and then reselects the profile again. it ...
+                         * doesnt execute the block of code inside it (mainAppNavController.navigate).
+                         *
+                         * Help performance of app as it prevents "mainAppNavController.navigate" from executing entirely if...
+                         * the current route is the route a user is trying to navigate to.
+                         */
+                        if (mainAppNavController.currentDestination?.route != it.route) {
+                            mainAppNavController.navigate(it.route) {
+                                // Pop all entries above CAP_COUNT, keeping CAP_COUNT
+                                popUpTo(MainAppNavigation.CAP_COUNT.route) { inclusive = false }
+                                launchSingleTop = true // doesnt add a route to back stack if route is reselected.
+                            }
+                        }
                     }
                 )
             }
@@ -271,7 +286,6 @@ class MainActivity : ComponentActivity() {
          * If the composable recomposes, the view model goes to default and resets too
          */
 
-        val snackBarHostState = remember { SnackbarHostState() }
         NavHost(navController = mainAppNavController, startDestination = MainAppNavigation.CAP_COUNT.route){
             composable(MainAppNavigation.CAP_COUNT.route){
                 CapCountScreen()
