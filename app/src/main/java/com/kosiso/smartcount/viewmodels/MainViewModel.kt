@@ -81,8 +81,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _getUserDetailsResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
     val getUserDetailsResult: StateFlow<MainOperationState<User>> = _getUserDetailsResult
 
-    private val _updateUserDetailsResult = MutableStateFlow<MainOperationState<String>>(MainOperationState.Idle)
-    val updateUserDetailsResult: StateFlow<MainOperationState<String>> = _updateUserDetailsResult
+    private val _updateUserDetailsResult = MutableStateFlow<String?>(null)
+    val updateUserDetailsResult: StateFlow<String?> = _updateUserDetailsResult
 
     private val _getUserDetailsFromRoomDBResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
     val getUserDetailsFromRoomDBResult: StateFlow<MainOperationState<User>> = _getUserDetailsFromRoomDBResult
@@ -508,8 +508,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                     updateUserInToRoomDB(newName)
                 }
                 onFailure {
-                    _updateUserDetailsResult.value = MainOperationState
-                        .Error(it.message.toString())
+                    _updateUserDetailsResult.value = it.message.toString()
                 }
             }
         }
@@ -519,12 +518,11 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         viewModelScope.launch{
             mainRepository.updateUserInToRoom(newName).apply {
                 onSuccess {
-                    _updateUserDetailsResult.value = MainOperationState
-                        .Success("User updated successfully")
+                    _updateUserDetailsResult.value = "User updated successfully"
+                    getUserDetailsFromRoomDB()
                 }
                 onFailure {
-                    _updateUserDetailsResult.value = MainOperationState
-                        .Error(it.message.toString())
+                    _updateUserDetailsResult.value = it.message.toString()
                 }
             }
         }

@@ -135,7 +135,6 @@ private fun ProfileDetails(mainViewModel: MainViewModel){
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
 
-    CheckUpdateUserResult(mainViewModel)
     CheckGetUserFromRoomDBResult(
         mainViewModel = mainViewModel,
         onUserGotten = {user->
@@ -144,7 +143,6 @@ private fun ProfileDetails(mainViewModel: MainViewModel){
             phone = user.phone
         }
     )
-
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -285,38 +283,15 @@ private fun ProfileFunctions(mainViewModel: MainViewModel, onNavigateToIntroScre
 }
 
 @Composable
-private fun CheckUpdateUserResult(mainViewModel: MainViewModel){
-
-    val context = LocalContext.current
-    val updateUserResult = mainViewModel.updateUserDetailsResult.collectAsState()
-
-    when(val result = updateUserResult.value){
-        is MainOperationState.Success ->{
-            LaunchedEffect(Unit) {
-                Toast.makeText(context, result.data, Toast.LENGTH_LONG).show()
-            }
-        }
-        is MainOperationState.Error ->{
-            LaunchedEffect(Unit) {
-                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-            }
-        }
-        else ->{
-            // loading and idle - do nothing
-        }
-    }
-}
-
-@Composable
 private fun CheckGetUserFromRoomDBResult(
     mainViewModel: MainViewModel,
     onUserGotten:(User)->Unit){
 
-    val context = LocalContext.current
     val userResult = mainViewModel.getUserDetailsFromRoomDBResult.collectAsState()
 
     when(val result = userResult.value){
         is MainOperationState.Success ->{
+            Log.i("get user from local db","success")
             val user = result.data
             onUserGotten(user)
         }
@@ -508,3 +483,47 @@ private fun ShowCustomDialog(
         }
     }
 }
+
+
+
+
+
+
+
+
+
+//@Composable
+//private fun CheckUpdateUserResult(mainViewModel: MainViewModel){
+//
+//    val context = LocalContext.current
+//    val updateUserResult = mainViewModel.updateUserDetailsResult.collectAsState()
+//    var lastShownResult by remember { mutableStateOf<String?>(null) }
+//
+//    Log.i("toast execution 0", updateUserResult.value + "and" + lastShownResult)
+//    if (updateUserResult.value != null){
+//        if (updateUserResult.value != lastShownResult) {
+//            Log.i("toast execution 1", updateUserResult.value + "and" + lastShownResult)
+//            Toast.makeText(context, updateUserResult.value, Toast.LENGTH_LONG).show()
+//            lastShownResult = updateUserResult.value
+//            Log.i("toast execution 2", updateUserResult.value + "and" + lastShownResult)
+//        }
+//    }
+//
+//    when(val result = updateUserResult.value){
+//        is MainOperationState.Success<*> ->{
+//            LaunchedEffect(result) {
+//                Log.i("toast execution", result.data)
+//                Toast.makeText(context, result.data, Toast.LENGTH_LONG).show()
+//            }
+//        }
+//        is MainOperationState.Error ->{
+//            LaunchedEffect(result) {
+//                Log.i("toast execution", result.message)
+//                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+//            }
+//        }
+//        else ->{
+//            // loading and idle - do nothing
+//        }
+//    }
+//}
