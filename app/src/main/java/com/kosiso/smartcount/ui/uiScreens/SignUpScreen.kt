@@ -186,6 +186,7 @@ private fun SignUpFieldsSection(
                         emailInput,
                         passwordInput
                     )
+
                 },
                 goToLoginScreen = {
                     onNavigateToLoginScreen()

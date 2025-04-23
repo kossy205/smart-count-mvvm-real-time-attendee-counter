@@ -13,6 +13,7 @@ import com.kosiso.foodshare.repository.LocationRepositoryImplementation
 import org.imperiumlabs.geofirestore.GeoFirestore
 import com.kosiso.smartcount.database.CountDao
 import com.kosiso.smartcount.database.RoomDatabase
+import com.kosiso.smartcount.database.UserDao
 import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.utils.Constants
@@ -48,13 +49,19 @@ object AppModule {
 
     @Singleton
     @Provides
+    fun provideUserDao(db: RoomDatabase) =  db.userDao()
+
+    @Singleton
+    @Provides
     fun provideMainRepository(countDao: CountDao,
+                              userDao: UserDao,
                               firebaseAuth: FirebaseAuth,
                               firestore: FirebaseFirestore,
                               geoFirestore: GeoFirestore
     ): MainRepository{
         return MainRepoImpl(
             countDao,
+            userDao,
             firebaseAuth,
             firestore,
             geoFirestore
