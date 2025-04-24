@@ -85,7 +85,7 @@ class MainRepoImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateUserInToRoom(newName: String): Result<Unit> {
+    override suspend fun updateUserInRoom(newName: String): Result<Unit> {
         return withContext(Dispatchers.IO){
             try {
                 userDao.updateUser(newName)
@@ -289,12 +289,12 @@ class MainRepoImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateUserCountPartnersInFirebase(countPartners: List<String>): Result<Unit> {
+    override suspend fun updateUserCountPartnersInFirebase(countPartnerId: String,countPartners: List<String>): Result<Unit> {
         return withContext(Dispatchers.IO){
             try {
                 firestore
                     .collection(Constants.AVAILABLE_USERS)
-                    .document(getCurrentUser()?.uid!!)
+                    .document(countPartnerId)
                     .update(Constants.COUNT_PARTNERS, countPartners)
                 Result.success(Unit)
             }catch (e: Exception){

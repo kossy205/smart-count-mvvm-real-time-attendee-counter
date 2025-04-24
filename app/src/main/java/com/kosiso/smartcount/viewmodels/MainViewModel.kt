@@ -16,6 +16,7 @@ import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.utils.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -104,9 +105,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         viewModelScope.launch{
             countPartnersList.asFlow().collect{
                 if(it.isNotEmpty()){
-                    it.forEach{countPartnerId->
-                        addFirebaseUserListener(countPartnerId)
-                    }
+                    addFirebaseListenerToListOfUser(it)
                 }
             }
         }
@@ -322,14 +321,34 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         locationRepository.stopLocationUpdates()
     }
 
+    private val _countdown = MutableLiveData<Int>()
+    val countdown: LiveData<Int> get() = _countdown
+
+    private val _isFinished = MutableLiveData<Boolean>()
+    val isFinished: LiveData<Boolean> get() = _isFinished
+
     fun fetchAvailableUsers(geoPoint: GeoPoint){
 
         _availableUsers.value = MainOperationState.Loading
 
         Log.i("fetch Available Users", "start")
-        val radius = 0.2
+        val radius = 1.0
         geoQuery = mainRepository.queryAvailableUsers(geoPoint, radius)
         val listOfAvailableUsersDoc = mutableListOf<User>()
+
+        viewModelScope.launch {
+            for (i in 30 downTo 0) {
+                _countdown.postValue(i)
+                delay(1000L) // 1-second delay
+            }
+            _isFinished.postValue(true) // Trigger action when done
+            _availableUsers.value = MainOperationState.Success(listOfAvailableUsersDoc)
+            Log.i("count time done 0","done $listOfAvailableUsersDoc")
+            if(isFinished.value == true){
+                _availableUsers.value = MainOperationState.Success(listOfAvailableUsersDoc)
+                Log.i("count time done 1","done $listOfAvailableUsersDoc")
+            }
+        }
 
         geoQueryEventListener = object : GeoQueryEventListener{
             override fun onGeoQueryError(exception: Exception) {
@@ -348,7 +367,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                     docFromDB.onSuccess {document ->
                         val user = document.toObject(User::class.java)!!
                         listOfAvailableUsersDoc.add(user)
-                        _availableUsers.value = MainOperationState.Success(listOfAvailableUsersDoc)
+//                        _availableUsers.value = MainOperationState.Success(listOfAvailableUsersDoc)
                         Log.i("available user doc", "$document")
                         Log.i("available users doc list", "$listOfAvailableUsersDoc")
                     }
@@ -383,9 +402,15 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
 
 
+    fun addFirebaseListenerToListOfUser(documentIDList: List<String>){
+        removeCountPartnerListener()
+        documentIDList.forEach{documentID->
+            addFirebaseUserListener(documentID)
+        }
+    }
+
     fun addFirebaseUserListener(documentID: String){
         Log.i("add User listener VM", "${documentID}")
-        removeCountPartnerListener()
 
         val countPartnerListener = mainRepository.addUserListener(
             documentId = documentID,
@@ -470,9 +495,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                         }else{
                             Log.i("count partners", "$countPartners")
                             _countPartnersList.value = countPartners
-                            countPartners.forEach{countPartnerId->
-                                addFirebaseUserListener(countPartnerId)
-                            }
+//                            countPartners.forEach{countPartnerId->
+//                                addFirebaseUserListener(countPartnerId)
+//                            }
                             removeUserListener()
                         }
                     }
@@ -486,11 +511,11 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         userListener[currentUserId] = userListner
     }
 
-    fun updateUserCountPartnersInFirebase(countPartners: List<String>){
+    fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>){
         viewModelScope.launch{
-            mainRepository.updateUserCountPartnersInFirebase(countPartners).apply {
+            mainRepository.updateUserCountPartnersInFirebase(countPartnerId, countPartners).apply {
                 onSuccess {
-                    Log.i("user count partners update", "success")
+                    Log.i("user count partners update", "success: ${countPartners}")
                 }
                 onFailure {
                     Log.i("user count partners update", "failed ${it.message}")
@@ -516,7 +541,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     fun updateUserInToRoomDB(newName: String){
         viewModelScope.launch{
-            mainRepository.updateUserInToRoom(newName).apply {
+            mainRepository.updateUserInRoom(newName).apply {
                 onSuccess {
                     _updateUserDetailsResult.value = "User updated successfully"
                     getUserDetailsFromRoomDB()
@@ -620,7 +645,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         Log.i("add to selected counters list", "$selectedUserListData")
     }
     // the "_selectedUserListData" is used to represent both selected users data and count partners
-    // CountPartnerUserList is for users that are not the session count started
+    // CountPartnerUserList is for users that are not the session count starters
     // SelectedUserList is for the users that stared the count session
     fun setCountPartnerUserList(list: MutableList<User>){
         _selectedUserListData.value = list
