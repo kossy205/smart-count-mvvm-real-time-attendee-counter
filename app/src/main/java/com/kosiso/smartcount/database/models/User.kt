@@ -13,5 +13,6 @@ data class User(
     val password: String = "",
     val image: String = "",
     val count: Long = 0,
-    val countPartners: List<String> = emptyList()
+    val countPartners: List<String> = emptyList(),
+    val isStarter: Boolean = false
 )

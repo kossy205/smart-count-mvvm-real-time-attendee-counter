@@ -40,6 +40,13 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
     val count: StateFlow<Int> = mainRepository.count
 
+
+    // part of count down logic
+    private val _countdown = MutableLiveData<Int>()
+    val countdown: LiveData<Int> get() = _countdown
+    private val _isFinished = MutableLiveData<Boolean>()
+    val isFinished: LiveData<Boolean> get() = _isFinished
+
     private val userListener = mutableMapOf<String, ListenerRegistration>()
     private val countPartnerListener = mutableMapOf<String, ListenerRegistration>()
 
@@ -88,7 +95,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _getUserDetailsFromRoomDBResult = MutableStateFlow<MainOperationState<User>>(MainOperationState.Idle)
     val getUserDetailsFromRoomDBResult: StateFlow<MainOperationState<User>> = _getUserDetailsFromRoomDBResult
 
-
     private val _countPartnersList = MutableLiveData<List<String>>(emptyList())
     val countPartnersList: LiveData<List<String>> = _countPartnersList
 
@@ -111,33 +117,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
-    fun getAllCountHistoryList(){
-        Log.i("launch count view model", "launched")
-        viewModelScope.launch {// Launched once, but collects indefinitely
-            _roomOperationResult.value = MainOperationState.Loading
-            Log.i("launch count view model 1", "launched")
-            try {
-                mainRepository.getAllCountList().collect { it ->
-                    _roomOperationResult.value = MainOperationState.Success(it)
-                    Log.i("all count history V.model", "$it")
-                }
-            } catch (e: Exception) {
-                _roomOperationResult.value =
-                    MainOperationState.Error(e.message ?: "Error fetching count history")
-            }
-        }
-    }
-
     /**
-     * Sign up
+     * Auth/Registration
      */
-    fun resetAuthState() {
-        _authOperationResult.value = MainOperationState.Idle
-    }
-    fun resetRegisterState() {
-        _registerOperationResult.value = MainOperationState.Idle
-    }
-
     fun signUpNewUser(email: String, password: String){
         viewModelScope.launch{
             _authOperationResult.value = MainOperationState.Loading
@@ -152,23 +134,30 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
-    
-     fun signInUser(email: String, password: String){
-         viewModelScope.launch{
-             _authOperationResult.value = MainOperationState.Loading
-             val signInResult = mainRepository.signInUser(email, password)
-             signInResult.onSuccess {firebaseUser->
-                 _authOperationResult.value = MainOperationState.Success(firebaseUser)
-                 Log.i("logging in user", "success")
-                 
-                 getUserToInsertIntoRoomDB()
-             }
-             signInResult.onFailure {
-                 _authOperationResult.value = MainOperationState.Error(it.message.toString())
-                 Log.i("logging in user", "errorMessage: ${it}")
-             }
-         }
-     }
+
+    fun signInUser(email: String, password: String){
+        viewModelScope.launch{
+            _authOperationResult.value = MainOperationState.Loading
+            val signInResult = mainRepository.signInUser(email, password)
+            signInResult.onSuccess {firebaseUser->
+                _authOperationResult.value = MainOperationState.Success(firebaseUser)
+                Log.i("logging in user", "success")
+
+                getUserToInsertIntoRoomDB()
+            }
+            signInResult.onFailure {
+                _authOperationResult.value = MainOperationState.Error(it.message.toString())
+                Log.i("logging in user", "errorMessage: ${it}")
+            }
+        }
+    }
+
+    fun resetAuthState() {
+        _authOperationResult.value = MainOperationState.Idle
+    }
+    fun resetRegisterState() {
+        _registerOperationResult.value = MainOperationState.Idle
+    }
 
     fun getUserToInsertIntoRoomDB(){
         viewModelScope.launch{
@@ -182,61 +171,22 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
-    
-    fun registerNewUserInDB(user: User){
-        viewModelScope.launch{
-            _registerOperationResult.value = MainOperationState.Loading
-            val registerUserInDBResult = mainRepository.registerUserInDB(user)
-            registerUserInDBResult.onSuccess {
-                _registerOperationResult.value = MainOperationState.Success(Unit)
-                insertUserIntoRoomDB(user)
-            }
-            registerUserInDBResult.onFailure {
-                _registerOperationResult.value = MainOperationState.Error(it.message.toString())
-            }
 
-        }
+    fun getCurrentUser(): FirebaseUser?{
+        return mainRepository.getCurrentUser()
     }
 
-    fun addToAvailableUsersDB(user: User){
-        Log.i("add To Available Users DB VM", "start")
-        viewModelScope.launch{
-            _uploadToAvailableUsersDBResult.value = MainOperationState.Loading
-            val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
-            uploadToAvailableUsers.onSuccess {
-                _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
-                getCurrentLocationUpdate()
-                Log.i("add To Available Users DB VM", "done")
-            }
-            uploadToAvailableUsers.onFailure {
-                _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
-                Log.i("add To Available Users DB VM", "error ${it.message}")
-
-            }
-        }
+    fun signOut(){
+        return mainRepository.signOut()
     }
 
-    fun removeFromAvailableUserDB(){
-        viewModelScope.launch{
-            _removeFromAvailableUsersDBResult.value = MainOperationState.Loading
-            val removeFromAvailableUsers = mainRepository.removeFromAvailableUsersDB()
-            removeFromAvailableUsers.onSuccess {
-//                mainRepository.removeGeofirestoreLocation()
-                _removeFromAvailableUsersDBResult.value = MainOperationState.Success(Unit)
-            }
-            removeFromAvailableUsers.onFailure {
-                _removeFromAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
 
-            }
-        }
-    }
+    //----------------------------------------------------------------------------------------------
 
-//    fun removeGeofirestoreLocation(){
-//        viewModelScope.launch{
-//            mainRepository.removeGeofirestoreLocation()
-//        }
-//    }
 
+    /**
+     * GeoFirestore operations
+     */
     fun setLocationUsingGeoFirestore(docId: String, geoPoint: GeoPoint){
         viewModelScope.launch{
             val setLocationGeofirestore = mainRepository.setLocationUsingGeoFirestore(docId, geoPoint)
@@ -261,72 +211,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
         }
     }
-
-    fun getUserDetails(){
-        viewModelScope.launch{
-            _getUserDetailsResult.value = MainOperationState.Loading
-            val getUserDetails = mainRepository.getUserDetails()
-            getUserDetails.onSuccess {user ->
-                _getUserDetailsResult.value = MainOperationState.Success(user)
-
-            }
-            getUserDetails.onFailure {
-                _getUserDetailsResult.value = MainOperationState.Error(it.message.toString())
-
-            }
-        }
-    }
-
-    fun insertUserIntoRoomDB(user: User){
-        val user = User(
-            id = user.id,
-            name = user.name,
-            phone = user.phone,
-            email = user.email,
-            password = user.password,
-            image = user.image,
-            count = user.count,
-            countPartners = user.countPartners
-        )
-        viewModelScope.launch{
-            mainRepository.insertUserInToRoom(user).apply {
-                onSuccess {
-                    Log.i("insert User Into RoomDB", "success")
-                }
-                onFailure {
-                    Log.i("insert User Into RoomDB", "failed: ${it.message}")
-                }
-            }
-        }
-    }
-
-
-    private fun getCurrentLocationUpdate(){
-        locationRepository.getLocationUpdates(
-            {location ->
-                val geoPoint = GeoPoint(location.latitude, location.longitude)
-                viewModelScope.launch{
-
-                    setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint)
-                }
-                Log.i("location gotten","$geoPoint")
-            },{exception ->
-                Log.i("location exception","$exception")
-            }
-        )
-    }
-
-    fun stopLocationUpdates() {
-        Log.i("location stopped", "stopped")
-        locationRepository.stopLocationUpdates()
-    }
-
-    private val _countdown = MutableLiveData<Int>()
-    val countdown: LiveData<Int> get() = _countdown
-
-    private val _isFinished = MutableLiveData<Boolean>()
-    val isFinished: LiveData<Boolean> get() = _isFinished
-
     fun fetchAvailableUsers(geoPoint: GeoPoint){
 
         _availableUsers.value = MainOperationState.Loading
@@ -386,7 +270,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         geoQuery.addGeoQueryEventListener(geoQueryEventListener)
         isGeoQueryActive = true
     }
-
+    // GeoFire Listeners
     fun removeGeoQueryEventListeners(){
         if (isGeoQueryActive) {
 
@@ -401,6 +285,293 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         }
     }
 
+
+    //----------------------------------------------------------------------------------------------
+
+
+    /**
+     * Location Operations
+     */
+    private fun getCurrentLocationUpdate(){
+        locationRepository.getLocationUpdates(
+            {location ->
+                val geoPoint = GeoPoint(location.latitude, location.longitude)
+                viewModelScope.launch{
+
+                    setLocationUsingGeoFirestore(mainRepository.getCurrentUser()!!.uid, geoPoint)
+                }
+                Log.i("location gotten","$geoPoint")
+            },{exception ->
+                Log.i("location exception","$exception")
+            }
+        )
+    }
+    fun stopLocationUpdates() {
+        Log.i("location stopped", "stopped")
+        locationRepository.stopLocationUpdates()
+    }
+
+
+    //----------------------------------------------------------------------------------------------
+
+
+    /**
+     * User Collection
+     */
+    fun registerNewUserInDB(user: User){
+        viewModelScope.launch{
+            _registerOperationResult.value = MainOperationState.Loading
+            val registerUserInDBResult = mainRepository.registerUserInDB(user)
+            registerUserInDBResult.onSuccess {
+                _registerOperationResult.value = MainOperationState.Success(Unit)
+                insertUserIntoRoomDB(user)
+            }
+            registerUserInDBResult.onFailure {
+                _registerOperationResult.value = MainOperationState.Error(it.message.toString())
+            }
+
+        }
+    }
+    fun updateUserDetails(newName: String){
+        viewModelScope.launch{
+            val userId = getCurrentUser()!!.uid
+            mainRepository.updateUserDetails(userId, newName).apply {
+                onSuccess {
+                    //always triggerring fix the bug
+                    updateUserInToRoomDB(newName)
+                }
+                onFailure {
+                    _updateUserDetailsResult.value = it.message.toString()
+                }
+            }
+        }
+    }
+    fun getUserDetails(){
+        viewModelScope.launch{
+            _getUserDetailsResult.value = MainOperationState.Loading
+            val getUserDetails = mainRepository.getUserDetails()
+            getUserDetails.onSuccess {user ->
+                _getUserDetailsResult.value = MainOperationState.Success(user)
+
+            }
+            getUserDetails.onFailure {
+                _getUserDetailsResult.value = MainOperationState.Error(it.message.toString())
+
+            }
+        }
+    }
+
+
+    //----------------------------------------------------------------------------------------------
+
+
+    /**
+     * Available User Collection
+     */
+    // upload
+    fun addToAvailableUsersDB(user: User){
+        Log.i("add To Available Users DB VM", "start")
+        viewModelScope.launch{
+            _uploadToAvailableUsersDBResult.value = MainOperationState.Loading
+            val uploadToAvailableUsers = mainRepository.addToAvailableUsersDB(user)
+            uploadToAvailableUsers.onSuccess {
+                _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
+                getCurrentLocationUpdate()
+                Log.i("add To Available Users DB VM", "done")
+            }
+            uploadToAvailableUsers.onFailure {
+                _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+                Log.i("add To Available Users DB VM", "error ${it.message}")
+
+            }
+        }
+    }
+
+    // delete
+    fun removeFromAvailableUserDB(){
+        viewModelScope.launch{
+            _removeFromAvailableUsersDBResult.value = MainOperationState.Loading
+            val removeFromAvailableUsers = mainRepository.removeFromAvailableUsersDB()
+            removeFromAvailableUsers.onSuccess {
+//                mainRepository.removeGeofirestoreLocation()
+                _removeFromAvailableUsersDBResult.value = MainOperationState.Success(Unit)
+            }
+            removeFromAvailableUsers.onFailure {
+                _removeFromAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+
+            }
+        }
+    }
+
+    //Update
+    fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>){
+        viewModelScope.launch{
+            mainRepository.updateAvailableUser(
+                countPartnerId,
+                Constants.COUNT_PARTNERS,
+                countPartners).apply {
+                onSuccess {
+                    Log.i("user count partners update", "success: ${countPartners}")
+                }
+                onFailure {
+                    Log.i("user count partners update", "failed ${it.message}")
+                }
+            }
+        }
+    }
+    fun updateUserCountInFirebase(countValue: Long){
+        viewModelScope.launch{
+            mainRepository.updateAvailableUser(
+                getCurrentUser()!!.uid,
+                Constants.COUNT,
+                countValue).apply {
+                onSuccess {
+                    Log.i("user count update", "success")
+                }
+                onFailure {
+                    Log.i("user count update", "failed ${it.message}")
+                }
+            }
+        }
+    }
+    fun updateUserStarterCounterStatus(){
+        viewModelScope.launch{
+            mainRepository.updateAvailableUser(
+                userId = getCurrentUser()!!.uid,
+                fieldName = Constants.IS_STARTER,
+                fieldValue = true
+            )
+        }
+    }
+
+
+    //----------------------------------------------------------------------------------------------
+
+
+    /**
+     * Room Operations
+     */
+    fun updateUserInToRoomDB(newName: String){
+        viewModelScope.launch{
+            mainRepository.updateUserInRoom(newName).apply {
+                onSuccess {
+                    _updateUserDetailsResult.value = "User updated successfully"
+                    getUserDetailsFromRoomDB()
+                }
+                onFailure {
+                    _updateUserDetailsResult.value = it.message.toString()
+                }
+            }
+        }
+    }
+
+    fun getUserDetailsFromRoomDB(){
+        viewModelScope.launch{
+            mainRepository.getUserDetailsFromRoomDB().apply {
+                onSuccess { user->
+                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Success(user)
+                }
+                onFailure {
+                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Error(it.message.toString())
+                }
+            }
+        }
+    }
+    fun getAllCountHistoryList(){
+        Log.i("launch count view model", "launched")
+        viewModelScope.launch {// Launched once, but collects indefinitely
+            _roomOperationResult.value = MainOperationState.Loading
+            Log.i("launch count view model 1", "launched")
+            try {
+                mainRepository.getAllCountList().collect { it ->
+                    _roomOperationResult.value = MainOperationState.Success(it)
+                    Log.i("all count history V.model", "$it")
+                }
+            } catch (e: Exception) {
+                _roomOperationResult.value =
+                    MainOperationState.Error(e.message ?: "Error fetching count history")
+            }
+        }
+    }
+
+    fun insertUserIntoRoomDB(user: User){
+        val user = User(
+            id = user.id,
+            name = user.name,
+            phone = user.phone,
+            email = user.email,
+            password = user.password,
+            image = user.image,
+            count = user.count,
+            countPartners = user.countPartners
+        )
+        viewModelScope.launch{
+            mainRepository.insertUserInToRoom(user).apply {
+                onSuccess {
+                    Log.i("insert User Into RoomDB", "success")
+                }
+                onFailure {
+                    Log.i("insert User Into RoomDB", "failed: ${it.message}")
+                }
+            }
+        }
+    }
+    // add a success result or failure result
+    fun insertCount(count: Count){
+        viewModelScope.launch{
+            mainRepository.insertCount(count)
+        }
+    }
+
+    // room delete
+    fun deleteCount(countId: Int){
+        viewModelScope.launch{
+            mainRepository.deleteCount(countId)
+        }
+    }
+
+
+    //----------------------------------------------------------------------------------------------
+
+
+    /**
+     * Firebase Listeners
+     */
+    // listens for changes in current user
+    fun addUserListener(){
+        removeAllFirebaseListeners()
+
+        val currentUserId = getCurrentUser()?.uid.toString()
+        var userListner = mainRepository.addUserListener(
+            documentId = currentUserId,
+            onUpdate = {updatedUserResult->
+                updatedUserResult.apply {
+
+                    onSuccess {updatedUser->
+                        val countPartners = updatedUser.countPartners
+                        if(countPartners.isEmpty()){
+                            Log.i("count partners", "empty $countPartners")
+                            _selectedUserListData.value = mutableListOf<User>()
+                            listOfCountPartners = mutableListOf()
+                            removeCountPartnerListener()
+                        }else{
+                            Log.i("count partners", "$countPartners")
+                            _countPartnersList.value = countPartners
+//                            countPartners.forEach{countPartnerId->
+//                                addFirebaseUserListener(countPartnerId)
+//                            }
+                            removeUserListener()
+                        }
+                    }
+
+                    onFailure {
+                        Log.i("count partners", "${it.message}")
+                    }
+                }
+            }
+        )
+        userListener[currentUserId] = userListner
+    }
 
     fun addFirebaseListenerToListOfUser(documentIDList: List<String>){
         removeCountPartnerListener()
@@ -449,19 +620,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         this@MainViewModel.countPartnerListener[documentID] = countPartnerListener
     }
 
-    fun updateUserCountInFirebase(countValue: Long){
-        viewModelScope.launch{
-            mainRepository.updateUserCountInFirebase(countValue).apply {
-                onSuccess {
-                    Log.i("user count update", "success")
-                }
-                onFailure {
-                    Log.i("user count update", "failed ${it.message}")
-                }
-            }
-        }
-    }
-
     fun removeUserListener(){
         userListener.values.forEach { it.remove() }
         userListener.clear()
@@ -475,99 +633,13 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         removeCountPartnerListener()
     }
 
-    // listens for changes in current user
-    fun addUserListener(){
-        removeAllFirebaseListeners()
 
-        val currentUserId = getCurrentUser()?.uid.toString()
-        var userListner = mainRepository.addUserListener(
-            documentId = currentUserId,
-            onUpdate = {updatedUserResult->
-                updatedUserResult.apply {
-
-                    onSuccess {updatedUser->
-                        val countPartners = updatedUser.countPartners
-                        if(countPartners.isEmpty()){
-                            Log.i("count partners", "empty $countPartners")
-                            _selectedUserListData.value = mutableListOf<User>()
-                            listOfCountPartners = mutableListOf()
-                            removeCountPartnerListener()
-                        }else{
-                            Log.i("count partners", "$countPartners")
-                            _countPartnersList.value = countPartners
-//                            countPartners.forEach{countPartnerId->
-//                                addFirebaseUserListener(countPartnerId)
-//                            }
-                            removeUserListener()
-                        }
-                    }
-
-                    onFailure {
-                        Log.i("count partners", "${it.message}")
-                    }
-                }
-            }
-        )
-        userListener[currentUserId] = userListner
-    }
-
-    fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>){
-        viewModelScope.launch{
-            mainRepository.updateUserCountPartnersInFirebase(countPartnerId, countPartners).apply {
-                onSuccess {
-                    Log.i("user count partners update", "success: ${countPartners}")
-                }
-                onFailure {
-                    Log.i("user count partners update", "failed ${it.message}")
-                }
-            }
-        }
-    }
-
-    fun updateUserDetails(newName: String){
-        viewModelScope.launch{
-            val userId = getCurrentUser()!!.uid
-            mainRepository.updateUserDetails(userId, newName).apply {
-                onSuccess {
-                    //always triggerring fix the bug
-                    updateUserInToRoomDB(newName)
-                }
-                onFailure {
-                    _updateUserDetailsResult.value = it.message.toString()
-                }
-            }
-        }
-    }
-
-    fun updateUserInToRoomDB(newName: String){
-        viewModelScope.launch{
-            mainRepository.updateUserInRoom(newName).apply {
-                onSuccess {
-                    _updateUserDetailsResult.value = "User updated successfully"
-                    getUserDetailsFromRoomDB()
-                }
-                onFailure {
-                    _updateUserDetailsResult.value = it.message.toString()
-                }
-            }
-        }
-    }
+    //----------------------------------------------------------------------------------------------
 
 
-
-    fun getUserDetailsFromRoomDB(){
-        viewModelScope.launch{
-            mainRepository.getUserDetailsFromRoomDB().apply {
-                onSuccess { user->
-                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Success(user)
-                }
-                onFailure {
-                    _getUserDetailsFromRoomDBResult.value = MainOperationState.Error(it.message.toString())
-                }
-            }
-        }
-    }
-
+    /**
+     * finish count
+      */
     fun finishSessionCount(){
         resetCount()
 
@@ -585,14 +657,13 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         removeGeoQueryEventListeners()
     }
 
-    fun getCurrentUser(): FirebaseUser?{
-        return mainRepository.getCurrentUser()
-    }
 
-    fun signOut(){
-        return mainRepository.signOut()
-    }
+    //----------------------------------------------------------------------------------------------
 
+
+    /**
+     * Count Operations
+     */
     fun increment(){
         mainRepository.increment()
         if(_onlineStatus.value == true){
@@ -616,30 +687,17 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         Log.i("count reset 1", "${count}")
     }
 
-    // add a success result or failure result
-    fun insertCount(count: Count){
-        viewModelScope.launch{
-            mainRepository.insertCount(count)
-        }
-    }
 
-    fun deleteCount(countId: Int){
-        viewModelScope.launch{
-            mainRepository.deleteCount(countId)
-        }
-    }
 
 
     fun onlineStatus(isOnline: Boolean){
         _onlineStatus.value = isOnline
     }
-
     fun setCheckedState(userId: String, isChecked: Boolean){
         val currentStates = _checkedStates.value.toMutableMap()
         currentStates[userId] = isChecked
         _checkedStates.value = currentStates
     }
-
     fun setSelectedUserList(list: MutableList<User>){
         _selectedUserListData.value = list
         Log.i("add to selected counters list", "$selectedUserListData")
@@ -651,10 +709,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         _selectedUserListData.value = list
         Log.i("add to selected counters list", "$selectedUserListData")
     }
-
     fun canFetchAvailableUsers(canFetchAvailableUsers: Boolean){
         _canFetchAvailableUsers.value = canFetchAvailableUsers
     }
+
 
     override fun onCleared() {
         removeAllFirebaseListeners()
