@@ -452,8 +452,6 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
             OnGoingSessionCount(mainViewModel,selectedUserListData.value)
         }
     }
-
-
 }
 
 @Composable
@@ -490,7 +488,7 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                         verticalArrangement = Arrangement.Center,
                     ){
                         Text(
-                            text = "Session Count",
+                            text = "Start Session Count",
                             style = TextStyle(
                                 color = White.copy(alpha = 0.8f),
                                 fontFamily = onest,
@@ -548,8 +546,12 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                  * using the docId
                  */
                 val idListOfSelectedUsers = selectedUserList.map { it.id }
+                idListOfSelectedUsers.forEach {
+                    mainViewModel.updateUserCountPartnersInFirebase(
+                        it,
+                        idListOfSelectedUsers)
+                }
 
-                mainViewModel.updateUserCountPartnersInFirebase(idListOfSelectedUsers)
 
                 showDialog = false
                 if(selectedUserList.isEmpty()){
@@ -562,11 +564,27 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
     }
 }
 
+private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, selectedUsers: MutableList<User>){
+    Log.i("partners to show", "${selectedUsers}")
+    val countPartnersFromAllUsers = mutableListOf<String>()
+    selectedUsers.forEach{user->
+        val listCountPartnersOfAUser = user.countPartners
+        listCountPartnersOfAUser.forEach{
+            countPartnersFromAllUsers.add(it)
+        }
+    }
+    mainViewModel.addFirebaseListenerToListOfUser(countPartnersFromAllUsers)
+    Log.i("partners id to show", "${countPartnersFromAllUsers}")
+}
+
 @Composable
 private fun OnGoingSessionCount(
     mainViewModel: MainViewModel,
     selectedUsers: MutableList<User>
 ){
+    // adds firebase listeners to count partners
+    addFirebaseListenersToCountPartners(mainViewModel, selectedUsers)
+
     val totalCount = totalSessionCount(selectedUsers)
     var showDialog by remember { mutableStateOf(false) }
     var textInput by remember { mutableStateOf("") }

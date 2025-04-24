@@ -23,7 +23,7 @@ interface MainRepository {
     suspend fun deleteCount(countId: Int)
 
     suspend fun insertUserInToRoom(user: User): Result<Unit>
-    suspend fun updateUserInToRoom(newName: String): Result<Unit>
+    suspend fun updateUserInRoom(newName: String): Result<Unit>
     suspend fun getUserDetailsFromRoomDB(): Result<User>
 
     fun getCurrentUser(): FirebaseUser?
@@ -53,9 +53,10 @@ interface MainRepository {
         onUpdate: (Result<User>) -> Unit
     ): ListenerRegistration
     suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit>
-    suspend fun updateUserCountPartnersInFirebase(countPartners: List<String>): Result<Unit>
+    suspend fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>): Result<Unit>
 
     suspend fun updateUserDetails(userId: String, newName: String): Result<Unit>
+//    suspend fun updateUser
 
 
 }
