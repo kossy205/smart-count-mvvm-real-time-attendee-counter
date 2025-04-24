@@ -160,8 +160,6 @@ class MainRepoImpl @Inject constructor(
 
     }
 
-
-
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
         return withContext(Dispatchers.IO){
             try {
@@ -177,8 +175,6 @@ class MainRepoImpl @Inject constructor(
                 Result.failure(e)
             }
         }
-
-
     }
 
     // no need for this, the "removeFromAvailableUsersDB()" already does this.
@@ -274,30 +270,21 @@ class MainRepoImpl @Inject constructor(
                 }
     }
 
-    override suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit> {
+    override suspend fun updateAvailableUser(
+        userId: String,
+        fieldName: String,
+        fieldValue: Any): Result<Unit> {
         return withContext(Dispatchers.IO){
+
+            val update = mapOf(fieldName to fieldValue)
             try {
                 firestore
                     .collection(Constants.AVAILABLE_USERS)
-                    .document(getCurrentUser()?.uid!!)
-                    .update(Constants.COUNT, countValue)
+                    .document(userId)
+                    .update(update)
                     .await()
                 Result.success(Unit)
-            }catch (e: Exception){
-                Result.failure(e)
-            }
-        }
-    }
-
-    override suspend fun updateUserCountPartnersInFirebase(countPartnerId: String,countPartners: List<String>): Result<Unit> {
-        return withContext(Dispatchers.IO){
-            try {
-                firestore
-                    .collection(Constants.AVAILABLE_USERS)
-                    .document(countPartnerId)
-                    .update(Constants.COUNT_PARTNERS, countPartners)
-                Result.success(Unit)
-            }catch (e: Exception){
+            }catch (e:Exception){
                 Result.failure(e)
             }
         }
@@ -310,6 +297,7 @@ class MainRepoImpl @Inject constructor(
                     .collection(Constants.USERS)
                     .document(userId)
                     .update(Constants.NAME, newName)
+                    .await()
                 Result.success(Unit)
             }catch (e: Exception){
                 Result.failure(e)
@@ -336,5 +324,43 @@ class MainRepoImpl @Inject constructor(
     override fun getCurrentUser(): FirebaseUser? {
         return firebaseAuth.currentUser
     }
+
+
+
+
+
+
+
+
+
+
+//    override suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit> {
+//        return withContext(Dispatchers.IO){
+//            try {
+//                firestore
+//                    .collection(Constants.AVAILABLE_USERS)
+//                    .document(getCurrentUser()?.uid!!)
+//                    .update(Constants.COUNT, countValue)
+//                    .await()
+//                Result.success(Unit)
+//            }catch (e: Exception){
+//                Result.failure(e)
+//            }
+//        }
+//    }
+//
+//    override suspend fun updateUserCountPartnersInFirebase(countPartnerId: String,countPartners: List<String>): Result<Unit> {
+//        return withContext(Dispatchers.IO){
+//            try {
+//                firestore
+//                    .collection(Constants.AVAILABLE_USERS)
+//                    .document(countPartnerId)
+//                    .update(Constants.COUNT_PARTNERS, countPartners)
+//                Result.success(Unit)
+//            }catch (e: Exception){
+//                Result.failure(e)
+//            }
+//        }
+//    }
 
 }

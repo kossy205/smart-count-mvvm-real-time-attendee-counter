@@ -52,11 +52,14 @@ interface MainRepository {
         documentId: String,
         onUpdate: (Result<User>) -> Unit
     ): ListenerRegistration
-    suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit>
-    suspend fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>): Result<Unit>
 
+    suspend fun updateAvailableUser(
+        userId: String,
+        fieldName: String,
+        fieldValue: Any): Result<Unit>
     suspend fun updateUserDetails(userId: String, newName: String): Result<Unit>
-//    suspend fun updateUser
 
 
+//    suspend fun updateUserCountInFirebase(countValue: Long): Result<Unit>
+//    suspend fun updateUserCountPartnersInFirebase(countPartnerId: String, countPartners: List<String>): Result<Unit>
 }

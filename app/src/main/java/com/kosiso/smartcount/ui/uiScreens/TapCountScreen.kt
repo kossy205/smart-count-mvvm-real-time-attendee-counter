@@ -304,13 +304,13 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     }
                 )
                 // get user details success/error
-                LaunchedEffect(Unit) {
+                LaunchedEffect(onlineStatusData) {
                     mainViewModel.getUserDetails()
+                    // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
+                    // so to get location updates, "addToAvailableUsersDB" need to be successful first
+                    mainViewModel.addToAvailableUsersDB(user)
+                    mainViewModel.addUserListener()
                 }
-                // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
-                // so to get location updates, "addToAvailableUsersDB" need to be successful first
-                mainViewModel.addToAvailableUsersDB(user)
-                mainViewModel.addUserListener()
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -326,10 +326,12 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         }
                     }
                 )
-                mainViewModel.removeGeoQueryEventListeners()
-                mainViewModel.stopLocationUpdates()
-                mainViewModel.removeFromAvailableUserDB()
-                mainViewModel.finishSessionCount()
+                LaunchedEffect(onlineStatusData) {
+                    mainViewModel.removeGeoQueryEventListeners()
+                    mainViewModel.stopLocationUpdates()
+                    mainViewModel.removeFromAvailableUserDB()
+                    mainViewModel.finishSessionCount()
+                }
             }
 
             if(shouldRequestPermission){
@@ -539,7 +541,7 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
             },
             confirmButton = {selectedUserList ->
                 mainViewModel.setSelectedUserList(selectedUserList)
-
+                mainViewModel.updateUserStarterCounterStatus()
                 /**
                  * from the "selectedUserList", extract the docId of each user.
                  * Add firebase listener to listen for changes in each of the user document,
@@ -564,19 +566,6 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
     }
 }
 
-private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, selectedUsers: MutableList<User>){
-    Log.i("partners to show", "${selectedUsers}")
-    val countPartnersFromAllUsers = mutableListOf<String>()
-    selectedUsers.forEach{user->
-        val listCountPartnersOfAUser = user.countPartners
-        listCountPartnersOfAUser.forEach{
-            countPartnersFromAllUsers.add(it)
-        }
-    }
-    mainViewModel.addFirebaseListenerToListOfUser(countPartnersFromAllUsers)
-    Log.i("partners id to show", "${countPartnersFromAllUsers}")
-}
-
 @Composable
 private fun OnGoingSessionCount(
     mainViewModel: MainViewModel,
@@ -584,6 +573,8 @@ private fun OnGoingSessionCount(
 ){
     // adds firebase listeners to count partners
     addFirebaseListenersToCountPartners(mainViewModel, selectedUsers)
+    mainViewModel.getUserDetails()
+    val isCountStarter = IsCountStarter(mainViewModel)
 
     val totalCount = totalSessionCount(selectedUsers)
     var showDialog by remember { mutableStateOf(false) }
@@ -661,38 +652,40 @@ private fun OnGoingSessionCount(
                     verticalAlignment = Alignment.Bottom
                 ){
 
-                    TextButton(
-                        onClick = {
-                            mainViewModel.finishSessionCount()
-                        }
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            style = TextStyle(
-                                color = Black,
-                                fontFamily = onest,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+                    if(isCountStarter){
+                        TextButton(
+                            onClick = {
+                                mainViewModel.finishSessionCount()
+                            }
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                style = TextStyle(
+                                    color = Black,
+                                    fontFamily = onest,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
                             )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    TextButton(
-                        onClick = {
-                            showDialog = true
                         }
-                    ) {
-                        Text(
-                            text = "Save",
-                            style = TextStyle(
-                                color = Pink,
-                                fontFamily = onest,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        TextButton(
+                            onClick = {
+                                showDialog = true
+                            }
+                        ) {
+                            Text(
+                                text = "Save",
+                                style = TextStyle(
+                                    color = Pink,
+                                    fontFamily = onest,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
                             )
-                        )
+                        }
                     }
 
                 }
@@ -749,6 +742,43 @@ private fun OnGoingSessionCount(
     }
 }
 
+
+private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, selectedUsers: MutableList<User>){
+    val countPartnersFromAllUsers = mutableListOf<String>()
+    selectedUsers.forEach{user->
+        val listCountPartnersOfAUser = user.countPartners
+        listCountPartnersOfAUser.forEach{
+            countPartnersFromAllUsers.add(it)
+        }
+    }
+    mainViewModel.addFirebaseListenerToListOfUser(countPartnersFromAllUsers)
+}
+
+@Composable
+private fun IsCountStarter(mainViewModel: MainViewModel): Boolean{
+    val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
+    val isUserCountStarter: Boolean = when (val result = getUserDetails.value) {
+        Idle -> {
+            Log.i("is starter", "idle")
+            false
+        }
+        Loading -> {
+            Log.i("is starter", "loading")
+            false
+        }
+        is Success<User> -> {
+            val isStarter = result.data.isStarter
+            Log.i("is starter", "success: $isStarter")
+            return isStarter
+        }
+        is MainOperationState.Error -> {
+            val errorMessage = result.message
+            Log.i("is starter", errorMessage)
+            false
+        }
+    }
+    return isUserCountStarter
+}
 
 @Composable
 private fun CountButtonsSection(mainViewModel: MainViewModel){
