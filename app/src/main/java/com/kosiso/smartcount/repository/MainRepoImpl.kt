@@ -194,7 +194,6 @@ class MainRepoImpl @Inject constructor(
                 Result.failure(e)
             }
         }
-
     }
 
     override suspend fun getUserDetails(): Result<User> {
@@ -213,7 +212,6 @@ class MainRepoImpl @Inject constructor(
                 Result.failure(e)
             }
         }
-
     }
 
     override suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit> {

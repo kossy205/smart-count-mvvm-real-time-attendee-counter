@@ -366,7 +366,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
 
     /**
-     * Available User Collection
+     * Available User Collections
      */
     // upload
     fun addToAvailableUsersDB(user: User){
