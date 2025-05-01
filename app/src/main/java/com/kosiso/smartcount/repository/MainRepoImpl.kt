@@ -151,13 +151,14 @@ class MainRepoImpl @Inject constructor(
                     .document(getCurrentUser()!!.uid)
                     .set(user, SetOptions.merge())
                     .await()
+
+                Log.i("add To Available Users DB repo", "done $user")
                 Result.success(Unit)
             }catch (e: Exception){
+                Log.i("add To Available Users DB repo", "fail ${e.message}")
                 Result.failure(e)
             }
         }
-
-
     }
 
     override suspend fun removeFromAvailableUsersDB(): Result<Unit> {
@@ -207,6 +208,24 @@ class MainRepoImpl @Inject constructor(
                 val user = document.toObject(User::class.java)
                     ?: return@withContext Result.failure(Exception("User not found"))
 
+                Result.success(user)
+            }catch (e: Exception){
+                Result.failure(e)
+            }
+        }
+    }
+    override suspend fun getAvailableUserDetails(): Result<User> {
+        return withContext(Dispatchers.IO){
+            try {
+                val document = firestore.collection(Constants.AVAILABLE_USERS)
+                    .document(getCurrentUser()?.uid.toString())
+                    .get()
+                    .await()
+
+                val user = document.toObject(User::class.java)
+                    ?: return@withContext Result.failure(Exception("User not found"))
+
+                Log.i("get available user detail ", "${document.data}")
                 Result.success(user)
             }catch (e: Exception){
                 Result.failure(e)
@@ -281,6 +300,7 @@ class MainRepoImpl @Inject constructor(
                     .document(userId)
                     .update(update)
                     .await()
+                Log.i("update available user", "done $fieldName = $fieldValue")
                 Result.success(Unit)
             }catch (e:Exception){
                 Result.failure(e)

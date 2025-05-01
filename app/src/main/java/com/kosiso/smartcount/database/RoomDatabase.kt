@@ -9,7 +9,7 @@ import com.kosiso.smartcount.database.models.User
 
 @Database(
     entities = [Count::class, User::class],
-    version = 4
+    version = 5
 )
 @TypeConverters(Converters::class)
 abstract class RoomDatabase: RoomDatabase() {

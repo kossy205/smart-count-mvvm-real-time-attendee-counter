@@ -43,6 +43,7 @@ interface MainRepository {
     fun queryAvailableUsers(geoPoint: GeoPoint, radius: Double): GeoQuery
 
     suspend fun getUserDetails(): Result<User>
+    suspend fun getAvailableUserDetails(): Result<User>
     suspend fun setLocationUsingGeoFirestore(userId: String, geoPoint: GeoPoint): Result<Unit>
 
     suspend fun getDocFromDB(collection: String, documentId: String): Result<DocumentSnapshot>

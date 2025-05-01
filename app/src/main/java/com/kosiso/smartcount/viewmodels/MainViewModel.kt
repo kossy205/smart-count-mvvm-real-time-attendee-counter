@@ -98,6 +98,10 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     private val _countPartnersList = MutableLiveData<List<String>>(emptyList())
     val countPartnersList: LiveData<List<String>> = _countPartnersList
 
+    private val _isUserCountStarter = MutableStateFlow<MainOperationState<Boolean>>(
+        MainOperationState.Idle)
+    val isUserCountStarter: StateFlow<MainOperationState<Boolean>> = _isUserCountStarter
+
 //    private val _userUpdatedSuccess = MutableLiveData<List<String>>(emptyList())
 //    val userUpdatedSuccess: LiveData<List<String>> = _userUpdatedSuccess
 
@@ -348,7 +352,6 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
     fun getUserDetails(){
         viewModelScope.launch{
-            _getUserDetailsResult.value = MainOperationState.Loading
             val getUserDetails = mainRepository.getUserDetails()
             getUserDetails.onSuccess {user ->
                 _getUserDetailsResult.value = MainOperationState.Success(user)
@@ -377,11 +380,26 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             uploadToAvailableUsers.onSuccess {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Success(Unit)
                 getCurrentLocationUpdate()
-                Log.i("add To Available Users DB VM", "done")
+                Log.i("add To Available Users DB VM", "done $user")
             }
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
                 Log.i("add To Available Users DB VM", "error ${it.message}")
+
+            }
+        }
+    }
+    fun checkIfUserIsCountStarter(){
+        viewModelScope.launch{
+            val getAvailableUser = mainRepository.getAvailableUserDetails()
+            getAvailableUser.onSuccess {user ->
+                val isStarter = user.isStarter
+                _isUserCountStarter.value = MainOperationState.Success(isStarter)
+                Log.i("is user count starter vm", "${user.isStarter}, $user")
+            }
+            getAvailableUser.onFailure {
+                Log.i("check If User IsCount Starter", it.message.toString())
+                _isUserCountStarter.value = MainOperationState.Error(it.message.toString())
 
             }
         }
@@ -441,6 +459,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 fieldName = Constants.IS_STARTER,
                 fieldValue = true
             )
+            Log.i("update Starter Status", "done")
         }
     }
 
@@ -504,6 +523,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             image = user.image,
             count = user.count,
             countPartners = user.countPartners
+//            isStarter = false
         )
         viewModelScope.launch{
             mainRepository.insertUserInToRoom(user).apply {
@@ -641,7 +661,11 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
      * finish count
       */
     fun finishSessionCount(){
-        resetCount()
+        // adding resetCount() below would reset counts when a user is counting offline.
+        // If they navigate away from the tapcount tab and then come back again, this function
+        // would be called because they're always offline.
+        // that means, if set, counts would be reset if client is in offline
+//        resetCount()
 
         _onlineStatus.value = false
         _checkedStates.value = emptyMap()
@@ -715,6 +739,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
 
     override fun onCleared() {
+        Log.d("MainViewModel", "ViewModel cleared")
         removeAllFirebaseListeners()
         removeGeoQueryEventListeners()
         super.onCleared()

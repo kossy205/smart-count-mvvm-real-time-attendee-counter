@@ -238,26 +238,24 @@ private fun TopIconSection(mainViewModel: MainViewModel){
 
     // user details gotten would be used to upload to available users collection on the db
     val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
-    val userDetail: User? = when (val result = getUserDetails.value) {
+    var userDetail: User? = null
+    when (val result = getUserDetails.value) {
         Idle -> {
             Log.i("getting user details", "idle")
-            null
         }
         Loading -> {
             Log.i("getting user details", "loading")
-            null
         }
         is Success<User> -> {
-            val user = result.data
-            Log.i("getting user details", "success: $user")
-            user
+            userDetail = result.data
+            Log.i("getting user details", "success: $userDetail")
+
         }
         is MainOperationState.Error -> {
             val errorMessage = result.message
             Log.i("getting user details", errorMessage)
             isOnline = false
             Toast.makeText(context, "Error getting user details, can't come online. Try again.", Toast.LENGTH_LONG).show()
-            null
         }
     }
 
@@ -268,6 +266,9 @@ private fun TopIconSection(mainViewModel: MainViewModel){
         email = userDetail?.email.toString(),
         password = userDetail?.password.toString(),
         image = userDetail?.image.toString(),
+        count = 0,
+        countPartners = emptyList(),
+        isStarter = false
     )
 
     Box(
@@ -303,14 +304,17 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                         mainViewModel.onlineStatus(!isOnline)
                     }
                 )
-                // get user details success/error
                 LaunchedEffect(onlineStatusData) {
-                    mainViewModel.getUserDetails()
-                    // location action is sent to foreground only if the "addToAvailableUsersDB" is successful
-                    // so to get location updates, "addToAvailableUsersDB" need to be successful first
-                    mainViewModel.addToAvailableUsersDB(user)
-                    mainViewModel.addUserListener()
+                        Log.i("launch online status", "$onlineStatusData")
+                        // get user details success/error
+                        mainViewModel.getUserDetails()
+                        mainViewModel.addUserListener()
                 }
+                LaunchedEffect(getUserDetails.value) {
+                        Log.i("launch get user", "$onlineStatusData")
+                        mainViewModel.addToAvailableUsersDB(user)
+                }
+
             }else{
                 isOnline = false
                 Common.IconButtonDesign(
@@ -327,11 +331,12 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     }
                 )
                 LaunchedEffect(onlineStatusData) {
-                    mainViewModel.removeGeoQueryEventListeners()
                     mainViewModel.stopLocationUpdates()
-                    mainViewModel.removeFromAvailableUserDB()
+                    mainViewModel.removeGeoQueryEventListeners()
                     mainViewModel.finishSessionCount()
+                    mainViewModel.removeFromAvailableUserDB()
                 }
+
             }
 
             if(shouldRequestPermission){
@@ -573,8 +578,7 @@ private fun OnGoingSessionCount(
 ){
     // adds firebase listeners to count partners
     addFirebaseListenersToCountPartners(mainViewModel, selectedUsers)
-    mainViewModel.getUserDetails()
-    val isCountStarter = IsCountStarter(mainViewModel)
+    val isCountStarter = isCountStarter(mainViewModel)
 
     val totalCount = totalSessionCount(selectedUsers)
     var showDialog by remember { mutableStateOf(false) }
@@ -651,7 +655,7 @@ private fun OnGoingSessionCount(
                     horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.Bottom
                 ){
-
+                    Log.i("is user count starter", "$isCountStarter")
                     if(isCountStarter){
                         TextButton(
                             onClick = {
@@ -755,25 +759,26 @@ private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, se
 }
 
 @Composable
-private fun IsCountStarter(mainViewModel: MainViewModel): Boolean{
-    val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
-    val isUserCountStarter: Boolean = when (val result = getUserDetails.value) {
+private fun isCountStarter(mainViewModel: MainViewModel): Boolean{
+    mainViewModel.checkIfUserIsCountStarter()
+    val isStarterData = mainViewModel.isUserCountStarter.collectAsState()
+    val isUserCountStarter: Boolean = when (val result = isStarterData.value) {
         Idle -> {
-            Log.i("is starter", "idle")
+            Log.i("is starterx", "idle")
             false
         }
         Loading -> {
-            Log.i("is starter", "loading")
+            Log.i("is starterx", "loading")
             false
         }
-        is Success<User> -> {
-            val isStarter = result.data.isStarter
-            Log.i("is starter", "success: $isStarter")
+        is Success<Boolean> -> {
+            val isStarter = result.data
+            Log.i("is starterx", "success: $isStarter")
             return isStarter
         }
         is MainOperationState.Error -> {
             val errorMessage = result.message
-            Log.i("is starter", errorMessage)
+            Log.i("is starterx", errorMessage)
             false
         }
     }

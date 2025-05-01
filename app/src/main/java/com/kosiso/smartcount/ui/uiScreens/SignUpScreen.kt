@@ -87,14 +87,15 @@ private fun SignUpFieldsSection(
     var passwordInput by remember { mutableStateOf("") }
 
     val user: User = User(
-        mainViewModel.getCurrentUser()?.uid.toString(),
-        textInput,
-        phoneInput,
-        emailInput,
-        passwordInput,
-        "",
-        0,
-        emptyList()
+        id = mainViewModel.getCurrentUser()?.uid.toString(),
+        name = textInput,
+        phone = phoneInput,
+        email = emailInput,
+        password = passwordInput,
+        image = "",
+        count = 0,
+        countPartners = emptyList()
+//        isStarter = false
     )
 
     CheckAuthOperationResult(mainViewModel, user)
