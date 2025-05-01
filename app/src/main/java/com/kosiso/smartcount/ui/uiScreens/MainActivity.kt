@@ -53,6 +53,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.navigation
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -85,7 +90,7 @@ class MainActivity : ComponentActivity() {
      * But for viewModel(), its tied to a composable only. It can be a TapScreen() or what ever. Meaning the lifecycle is tied to the TapScreen(),
      * this should be done when you need a view Model class only for TapScreen()
      */
-    val mainViewModel: MainViewModel by viewModels()
+    lateinit var mainViewModel: MainViewModel
     private var navControllerState: NavHostController? = null
 
 
@@ -101,6 +106,7 @@ class MainActivity : ComponentActivity() {
             powerManager = getSystemService(POWER_SERVICE) as PowerManager
             // Create a WakeLock with the screen flag
             wakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "MyApp::PreventScreenOff")
+            mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
 
             Permission()
 
@@ -257,7 +263,7 @@ class MainActivity : ComponentActivity() {
                         if (mainAppNavController.currentDestination?.route != it.route) {
                             mainAppNavController.navigate(it.route) {
                                 // Pop all entries above CAP_COUNT, keeping CAP_COUNT
-                                popUpTo(MainAppNavigation.CAP_COUNT.route) { inclusive = false }
+//                                popUpTo(MainAppNavigation.CAP_COUNT.route) { inclusive = true }
                                 launchSingleTop = true // doesnt add a route to back stack if route is reselected.
                             }
                         }
