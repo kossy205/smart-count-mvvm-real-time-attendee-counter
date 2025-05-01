@@ -331,6 +331,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     }
                 )
                 LaunchedEffect(onlineStatusData) {
+                    Log.i("launch online status", "$onlineStatusData")
                     mainViewModel.stopLocationUpdates()
                     mainViewModel.removeGeoQueryEventListeners()
                     mainViewModel.finishSessionCount()

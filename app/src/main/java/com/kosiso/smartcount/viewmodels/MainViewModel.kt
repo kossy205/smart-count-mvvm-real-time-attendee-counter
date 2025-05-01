@@ -573,7 +573,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                             Log.i("count partners", "empty $countPartners")
                             _selectedUserListData.value = mutableListOf<User>()
                             listOfCountPartners = mutableListOf()
-                            removeCountPartnerListener()
+//                            removeCountPartnerListener()
                         }else{
                             Log.i("count partners", "$countPartners")
                             _countPartnersList.value = countPartners
@@ -643,10 +643,12 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     fun removeUserListener(){
         userListener.values.forEach { it.remove() }
         userListener.clear()
+        Log.i("user listener removed", "done")
     }
     fun removeCountPartnerListener(){
         countPartnerListener.values.forEach { it.remove() }
         countPartnerListener.clear()
+        Log.i("count partner listener removed", "done")
     }
     fun removeAllFirebaseListeners(){
         removeUserListener()
@@ -679,6 +681,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         removeAllFirebaseListeners()
         // the below might cause bug since its being called when theres no geoquery listner available
         removeGeoQueryEventListeners()
+        stopLocationUpdates()
     }
 
 
