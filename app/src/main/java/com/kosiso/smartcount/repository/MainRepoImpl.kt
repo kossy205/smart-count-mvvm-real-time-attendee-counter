@@ -3,6 +3,7 @@ package com.kosiso.smartcount.repository
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
@@ -13,7 +14,6 @@ import com.kosiso.smartcount.database.UserDao
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.utils.Constants
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +35,20 @@ class MainRepoImpl @Inject constructor(
     private val _count = MutableStateFlow(0)
     override val count : StateFlow<Int> = _count
 
-//    override val allCountList: Flow<List<Count>> = countDao.getAllCounts()
+
+    private var userListenerRegistration: ListenerRegistration? = null
+    private var isUserListening = false
+    private var currentUserDocRef: DocumentReference? = null
+
+    // count Partner listeners - a map to store multiple count partner listeners
+    private data class CountPartnerItemListener(
+        val registration: ListenerRegistration,
+        val countPartnerId: String,
+        val docRef: DocumentReference
+    )
+    // Map of listener ID to listener data
+    private val countPartnerListeners = mutableMapOf<String, CountPartnerItemListener>()
+
 
     override fun increment(){
         _count.value = _count.value + 1
@@ -268,24 +281,151 @@ class MainRepoImpl @Inject constructor(
 
     override fun addUserListener(
         documentID: String,
-        onUpdate: (Result<User>) -> Unit): ListenerRegistration {
+        onUpdate: (Result<User>) -> Unit) {
 
-        return firestore
+        if (isUserListening) {
+            Log.i("user listener", "Already listening to a user, stopping previous listener")
+            stopUserListener()
+        }
+        try {
+            val userDocRef = firestore
                 .collection(Constants.AVAILABLE_USERS)
                 .document(documentID)
+            val userListenerRegistration = userDocRef
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
+                        Log.i("user listener", "User listen failed: ${error.message}")
                         onUpdate(Result.failure(error))
                         return@addSnapshotListener
                     }
-                    val updatedUser = snapshot?.toObject(User::class.java)
-                    if (updatedUser != null) {
-                        onUpdate(Result.success(updatedUser))
+
+                    if (snapshot != null && snapshot.exists()) {
+                        Log.i("user listener", "Current user data updated: ${snapshot.id}")
+                        try {
+                            // Convert document to user data
+                            val userData = snapshot.toObject(User::class.java)
+                            onUpdate(Result.success(userData!!))
+                        } catch (e: Exception) {
+                            Log.i("user listener", "Error parsing user data: ${e.message}")
+                            onUpdate(Result.failure(e))
+                        }
                     } else {
-                        onUpdate(Result.failure(Exception("Failed to parse user data from snapshot")))
+                        Log.i("user listener", "Current user document doesn't exist")
+                        onUpdate(Result.failure(Exception("User document not found")))
                     }
                 }
+        }catch (e:Exception){
+            Log.i("user listener", "Error setting up user listener: ${e.message}")
+            onUpdate(Result.failure(e))
+            isUserListening = false
+        }
+
+        isUserListening = true
+        Log.i("user listener", "Listener registered for user: $documentID")
     }
+    override fun stopUserListener() {
+        Log.i("user listener", "Stopping user listener, isUserListening=$isUserListening")
+        userListenerRegistration?.let {
+            it.remove()
+            Log.i("user listener", "User listener removed")
+        }
+        userListenerRegistration = null
+        isUserListening = false
+    }
+
+    override fun addCountPartnerListener(
+        documentId: String,
+        onUpdate: (Result<User>) -> Unit): String {
+        // since this would be used to listen to several count partners,
+        // a unique identifier for each listener has to be created which is "listenerId".
+        // I just want it to be same with the documentID.
+        val listenerId = documentId
+
+        // If already listening to this specific count partner with this ID, stop first
+        if (countPartnerListeners.containsKey(listenerId)) {
+            Log.i("count partner listener", "Already listening to food item with ID $listenerId, stopping previous listener")
+            stopCountPartnerListener(listenerId)
+        }
+
+        try {
+            Log.i("count partner listener", "Starting listener for food item: $documentId with listener ID: $listenerId")
+
+            // Get reference to the count partner document
+            val countPartnerDocRef = firestore
+                .collection(Constants.AVAILABLE_USERS)
+                .document(documentId)
+
+            // Set up the listener
+            val registration = countPartnerDocRef.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.i("count partner listener", "Food item listen failed for $listenerId: ${error.message}")
+                    onUpdate(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    Log.i("count partner listener", "Food item data updated for $listenerId: ${snapshot.id}")
+                    try {
+                        // Convert document to count partner data
+                        val countPartner = snapshot.toObject(User::class.java)
+                        onUpdate(Result.success(countPartner!!))
+                    } catch (e: Exception) {
+                        Log.i("count partner listener", "Error parsing food item data for $listenerId: ${e.message}")
+                        onUpdate(Result.failure(e))
+                    }
+                } else {
+                    Log.i("count partner listener", "Food item document doesn't exist for $listenerId")
+                    onUpdate(Result.failure(Exception("Food item document not found")))
+                }
+            }
+
+            // Store the listener information
+            countPartnerListeners[listenerId] = CountPartnerItemListener(
+                registration = registration,
+                countPartnerId = documentId,
+                docRef = countPartnerDocRef
+            )
+
+            Log.i("count partner listener", "Listener registered for food item: $documentId with ID: $listenerId")
+            return listenerId
+
+        } catch (e: Exception) {
+            Log.i("count partner listener", "Error setting up food item listener for $listenerId: ${e.message}")
+            onUpdate(Result.failure(e))
+            return listenerId
+        }
+    }
+    override fun stopCountPartnerListener(listenerId: String) {
+        Log.i("count partner listener", "Stopping food item listener with ID: $listenerId")
+
+        countPartnerListeners[listenerId]?.let { listener ->
+            listener.registration.remove()
+            countPartnerListeners.remove(listenerId)
+            Log.i("count partner listener", "Food item listener removed: $listenerId")
+        } ?: run {
+            Log.i("count partner listener", "No food item listener found with ID: $listenerId")
+        }
+    }
+    override fun stopAllCountPartnerListeners() {
+        Log.i("all count partner listener", "Stopping all food item listeners, count: ${countPartnerListeners.size}")
+
+        // Create a copy of the keys to avoid concurrent modification
+        val listenerIds = countPartnerListeners.keys.toList()
+
+        for (listenerId in listenerIds) {
+            stopCountPartnerListener(listenerId)
+        }
+
+        countPartnerListeners.clear()
+        Log.i("all count partner listener", "All food item listeners stopped")
+    }
+
+    override fun stopAllFirebaseListeners() {
+        stopUserListener()
+        stopAllCountPartnerListeners()
+        Log.i("all firebase listener", "All listeners stopped")
+    }
+
 
     override suspend fun updateAvailableUser(
         userId: String,

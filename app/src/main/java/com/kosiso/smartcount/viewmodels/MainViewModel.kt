@@ -558,55 +558,94 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
      * Firebase Listeners
      */
     // listens for changes in current user
-    fun addUserListener(){
-        removeAllFirebaseListeners()
-
-        val currentUserId = getCurrentUser()?.uid.toString()
-        var userListner = mainRepository.addUserListener(
-            documentId = currentUserId,
-            onUpdate = {updatedUserResult->
-                updatedUserResult.apply {
-
-                    onSuccess {updatedUser->
-                        val countPartners = updatedUser.countPartners
-                        if(countPartners.isEmpty()){
-                            Log.i("count partners", "empty $countPartners")
-                            _selectedUserListData.value = mutableListOf<User>()
-                            listOfCountPartners = mutableListOf()
-//                            removeCountPartnerListener()
-                        }else{
-                            Log.i("count partners", "$countPartners")
-                            _countPartnersList.value = countPartners
-//                            countPartners.forEach{countPartnerId->
-//                                addFirebaseUserListener(countPartnerId)
-//                            }
-                            removeUserListener()
-                        }
-                    }
-
-                    onFailure {
-                        Log.i("count partners", "${it.message}")
-                    }
-                }
-            }
-        )
-        userListener[currentUserId] = userListner
-    }
+//    fun maddUserListener(){
+//        removeAllFirebaseListeners()
+//
+//        val currentUserId = getCurrentUser()?.uid.toString()
+//        var userListner = mainRepository.addUserListener(
+//            documentId = currentUserId,
+//            onUpdate = {updatedUserResult->
+//                updatedUserResult.apply {
+//
+//                    onSuccess {updatedUser->
+//                        val countPartners = updatedUser.countPartners
+//                        if(countPartners.isEmpty()){
+//                            Log.i("count partners", "empty $countPartners")
+//                            _selectedUserListData.value = mutableListOf<User>()
+//                            listOfCountPartners = mutableListOf()
+////                            removeCountPartnerListener()
+//                        }else{
+//                            Log.i("count partners", "$countPartners")
+//                            _countPartnersList.value = countPartners
+////                            countPartners.forEach{countPartnerId->
+////                                addFirebaseUserListener(countPartnerId)
+////                            }
+//                            removeUserListener()
+//                        }
+//                    }
+//
+//                    onFailure {
+//                        Log.i("count partners", "${it.message}")
+//                    }
+//                }
+//            }
+//        )
+//        userListener[currentUserId] = userListner
+//    }
 
     fun addFirebaseListenerToListOfUser(documentIDList: List<String>){
-        removeCountPartnerListener()
+        //  removeCountPartnerListener()
         documentIDList.forEach{documentID->
             addFirebaseUserListener(documentID)
         }
     }
 
-    fun addFirebaseUserListener(documentID: String){
-        Log.i("add User listener VM", "${documentID}")
+//    fun maddFirebaseUserListener(documentID: String){
+//        Log.i("add User listener VM", "${documentID}")
+//
+//        val countPartnerListener = mainRepository.addUserListener(
+//            documentId = documentID,
+//            onUpdate = {userResult->
+//                userResult.apply{
+//
+//                    onSuccess { updatedUser ->
+//
+//                        Log.i("add User listener VM", "success $documentID")
+//                        // Updates the user in the selected users list if present
+//                        val selectedIndex =
+//                            _selectedUserListData.value.indexOfFirst { it.id == documentID }
+//
+//                        Log.i("selectedUserListData 1", "${_selectedUserListData.value}")
+//
+//                        if (selectedIndex != -1) {
+//                            val updatedSelectedList = _selectedUserListData.value.toMutableList()
+//                            updatedSelectedList[selectedIndex] = updatedUser
+//                            _selectedUserListData.value = updatedSelectedList
+//                            Log.i("selectedUserListData 2", "${_selectedUserListData.value}")
+//                        }else{
+//                            listOfCountPartners.add(updatedUser)
+//                            setCountPartnerUserList(listOfCountPartners)
+//                            Log.i("selectedUserListData 3", "${_selectedUserListData.value}")
+//                        }
+//                        Log.i("selectedUserListData 4", "${_selectedUserListData.value}")
+//                        Log.i("listOfCountPartners", "${listOfCountPartners}")
+//
+//                    }
+//                    onFailure { exception ->
+//                        Log.i("add User listener VM", "error: ${exception.message}")
+//                    }
+//                }
+//            }
+//        )
+//        this@MainViewModel.countPartnerListener[documentID] = countPartnerListener
+//    }
 
-        val countPartnerListener = mainRepository.addUserListener(
+    // count partner listener
+    fun addFirebaseUserListener(documentID: String){
+        mainRepository.addCountPartnerListener(
             documentId = documentID,
-            onUpdate = {userResult->
-                userResult.apply{
+            onUpdate = {countPartnerResult->
+                countPartnerResult.apply{
 
                     onSuccess { updatedUser ->
 
@@ -637,22 +676,58 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
             }
         )
-        this@MainViewModel.countPartnerListener[documentID] = countPartnerListener
     }
 
+    fun addUserListener(){
+        val currentUserId = getCurrentUser()?.uid.toString()
+
+        mainRepository.addUserListener(
+            documentId = currentUserId,
+            onUpdate = {updatedUserResult->
+                updatedUserResult.apply {
+                    onSuccess {updatedUser->
+                        val countPartners = updatedUser.countPartners
+                        if(countPartners.isEmpty()){
+                            Log.i("count partners", "empty $countPartners")
+                            _selectedUserListData.value = mutableListOf<User>()
+                            listOfCountPartners = mutableListOf()
+//                            removeCountPartnerListener()
+                        }else{
+                            Log.i("count partners", "$countPartners")
+                            _countPartnersList.value = countPartners
+//                            countPartners.forEach{countPartnerId->
+//                                addFirebaseUserListener(countPartnerId)
+//                            }
+                            removeUserListener()
+                        }
+                    }
+                    onFailure {
+
+                    }
+                }
+            }
+        )
+    }
+
+
+
+
     fun removeUserListener(){
-        userListener.values.forEach { it.remove() }
-        userListener.clear()
-        Log.i("user listener removed", "done")
+//        userListener.values.forEach { it.remove() }
+//        userListener.clear()
+//        Log.i("user listener removed", "done")
+        mainRepository.stopUserListener()
     }
     fun removeCountPartnerListener(){
-        countPartnerListener.values.forEach { it.remove() }
-        countPartnerListener.clear()
-        Log.i("count partner listener removed", "done")
+//        countPartnerListener.values.forEach { it.remove() }
+//        countPartnerListener.clear()
+//        Log.i("count partner listener removed", "done")
+        mainRepository.stopAllCountPartnerListeners()
     }
     fun removeAllFirebaseListeners(){
-        removeUserListener()
-        removeCountPartnerListener()
+//        removeUserListener()
+//        removeCountPartnerListener()
+        mainRepository.stopAllFirebaseListeners()
     }
 
 

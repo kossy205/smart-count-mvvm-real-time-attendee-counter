@@ -1,16 +1,15 @@
-package com.kosiso.foodshare.repository
+package com.kosiso.smartcount.repository
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.location.Location
 import android.os.Looper
 import android.util.Log
-import android.widget.Toast
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.firebase.firestore.GeoPoint
+import com.kosiso.foodshare.repository.LocationRepository
 import javax.inject.Inject
 
 class LocationRepositoryImplementation @Inject constructor(
