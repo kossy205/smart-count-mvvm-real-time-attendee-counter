@@ -1106,12 +1106,12 @@ private fun ShowAddCountersDialog(
                  */
                 when(val result = availableUsersList.value){
                     Idle -> {
-                        dialogTitle = "Searching Available Counters..."
+                        dialogTitle = "Searching available counters..."
                         ShowProgressBar()
                         Log.i("display available user list", "Idle ")
                     }
                     Loading -> {
-                        dialogTitle = "Searching Available Counters..."
+                        dialogTitle = "Fetching available counters..."
                         ShowHorizontalProgressBar(mainViewModel)
                         Log.i("display available user list", "loading ")
                     }
@@ -1475,35 +1475,15 @@ private fun ShowHorizontalProgressBar(mainViewModel: MainViewModel){
     )
 
     Box(contentAlignment = Alignment.Center) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+        LinearProgressIndicator(
+            progress = animatedProgress,
             modifier = Modifier
-                .fillMaxWidth()
-        ){
-            LinearProgressIndicator(
-                progress = animatedProgress,
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(8.dp),
-                color = Pink,
-                trackColor = Color(0xFFE0E0E0),
-                strokeCap = StrokeCap.Round
-            )
-
-
-            Text(
-                text = "$countdownTimeInSec",
-                style = TextStyle(
-                    color = Black,
-                    fontFamily = onest,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            )
-
-        }
-
+                .fillMaxWidth(0.9f)
+                .height(8.dp),
+            color = Pink,
+            trackColor = Color(0xFFE0E0E0),
+            strokeCap = StrokeCap.Round
+        )
     }
 }
 
