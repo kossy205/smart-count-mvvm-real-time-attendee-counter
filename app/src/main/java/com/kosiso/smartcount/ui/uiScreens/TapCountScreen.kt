@@ -729,9 +729,13 @@ private fun OnGoingSessionCount(
         if (totalCount > 0) {
             ShowCustomDialog(
                 onDismiss = { showDialog = false },
-                cancelButton = { showDialog = false },
+                cancelButton = {
+                    showDialog = false
+                    removeCountPartners(mainViewModel, selectedUsers)
+                },
                 confirmButton = {
                     mainViewModel.insertCount(countHistory)
+                    removeCountPartners(mainViewModel, selectedUsers)
                     mainViewModel.finishSessionCount()
                     showDialog = false
                 },
@@ -744,6 +748,16 @@ private fun OnGoingSessionCount(
                 Toast.makeText(context, "Count must be greater than 0", Toast.LENGTH_LONG).show()
             }
         }
+    }
+}
+
+private fun removeCountPartners(mainViewModel: MainViewModel, countPartners: MutableList<User>){
+    // removes count partners from all count partners, so they're aware the count is finished
+    val idListOfCountPartners = countPartners.map { it.id }
+    idListOfCountPartners.forEach {
+        mainViewModel.updateUserCountPartnersInFirebase(
+            it,
+            emptyList())
     }
 }
 
