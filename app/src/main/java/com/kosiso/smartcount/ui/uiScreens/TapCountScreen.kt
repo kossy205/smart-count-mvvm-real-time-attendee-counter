@@ -71,6 +71,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -80,6 +82,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -87,6 +90,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.asFlow
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -95,31 +99,41 @@ import com.kosiso.smartcount.utils.CountType
 import kotlin.collections.mutableListOf
 
 
-@Preview(showBackground = true, backgroundColor = 0xFF00FF00)
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun Preview(){
 
-    // Mock selectedUsers list (replace User with your actual user class)
-    val userList = mutableListOf<User>(
-        User(
-            id = "user1",
-            name = "Demoo Kosi",
-            phone = "222",
-            email = "user1@gmail.com",
-            password = "user111",
-            image = "",
-        ),
-        User(
-            id = "user1",
-            name = "Kosi",
-            phone = "222",
-            email = "user1@gmail.com",
-            password = "user111",
-            image = "",
-        )
-    )
+    Box(contentAlignment = Alignment.Center) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+        ){
+            LinearProgressIndicator(
+                progress = 0.5F,
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(8.dp),
+                color = Pink,
+                trackColor = Color(0xFFE0E0E0),
+                strokeCap = StrokeCap.Round
+            )
 
-//    OnGoingSessionCount(mainViewModel, userList)
+
+            Text(
+                text = "30",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            )
+
+        }
+
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
@@ -729,9 +743,13 @@ private fun OnGoingSessionCount(
         if (totalCount > 0) {
             ShowCustomDialog(
                 onDismiss = { showDialog = false },
-                cancelButton = { showDialog = false },
+                cancelButton = {
+                    showDialog = false
+                    removeCountPartners(mainViewModel, selectedUsers)
+                },
                 confirmButton = {
                     mainViewModel.insertCount(countHistory)
+                    removeCountPartners(mainViewModel, selectedUsers)
                     mainViewModel.finishSessionCount()
                     showDialog = false
                 },
@@ -744,6 +762,16 @@ private fun OnGoingSessionCount(
                 Toast.makeText(context, "Count must be greater than 0", Toast.LENGTH_LONG).show()
             }
         }
+    }
+}
+
+private fun removeCountPartners(mainViewModel: MainViewModel, countPartners: MutableList<User>){
+    // removes count partners from all count partners, so they're aware the count is finished
+    val idListOfCountPartners = countPartners.map { it.id }
+    idListOfCountPartners.forEach {
+        mainViewModel.updateUserCountPartnersInFirebase(
+            it,
+            emptyList())
     }
 }
 
@@ -1037,8 +1065,8 @@ private fun ShowAddCountersDialog(
 ){
 
     var availableUsersList = mainViewModel.availableUsers.collectAsState()
-
     var selectedUserList = mutableListOf<User>()
+    var dialogTitle by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = {}){
         Surface(
@@ -1057,7 +1085,7 @@ private fun ShowAddCountersDialog(
             ) {
 
                 Text(
-                    text = "Available Users",
+                    text = dialogTitle,
                     style = TextStyle(
                         color = Black,
                         fontFamily = onest,
@@ -1078,14 +1106,17 @@ private fun ShowAddCountersDialog(
                  */
                 when(val result = availableUsersList.value){
                     Idle -> {
+                        dialogTitle = "Searching Available Counters..."
                         ShowProgressBar()
                         Log.i("display available user list", "Idle ")
                     }
                     Loading -> {
-                        ShowProgressBar()
+                        dialogTitle = "Searching Available Counters..."
+                        ShowHorizontalProgressBar(mainViewModel)
                         Log.i("display available user list", "loading ")
                     }
                     is Success -> {
+                        dialogTitle = "Available Counters"
                         val availableUsersListData = result.data
                         LazyColumn {
                             items(
@@ -1111,7 +1142,7 @@ private fun ShowAddCountersDialog(
                         }
                     }
                     is MainOperationState.Error -> {
-                        ShowProgressBar()
+                        cancelButton()
                         val errorMessage = result.message
                         Log.i("display available user list", errorMessage)
                     }
@@ -1429,7 +1460,51 @@ private fun ShowProgressBar(){
             strokeCap = StrokeCap.Round
         )
     }
+}
 
+@Composable
+private fun ShowHorizontalProgressBar(mainViewModel: MainViewModel){
+
+    val countdownTimeInSec by mainViewModel.countdown.collectAsState(30)
+    val maxTimeInSec = 30
+    val progress = (maxTimeInSec - countdownTimeInSec).toFloat() / maxTimeInSec.toFloat()
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 300) // adjust duration for smoother animation
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+        ){
+            LinearProgressIndicator(
+                progress = animatedProgress,
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(8.dp),
+                color = Pink,
+                trackColor = Color(0xFFE0E0E0),
+                strokeCap = StrokeCap.Round
+            )
+
+
+            Text(
+                text = "$countdownTimeInSec",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            )
+
+        }
+
+    }
 }
 
 

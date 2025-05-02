@@ -42,8 +42,8 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
 
     // part of count down logic
-    private val _countdown = MutableLiveData<Int>()
-    val countdown: LiveData<Int> get() = _countdown
+    private val _countdown = MutableStateFlow<Int>(0)
+    val countdown: StateFlow<Int> = _countdown
     private val _isFinished = MutableLiveData<Boolean>()
     val isFinished: LiveData<Boolean> get() = _isFinished
 
@@ -227,7 +227,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
         viewModelScope.launch {
             for (i in 30 downTo 0) {
-                _countdown.postValue(i)
+                _countdown.value = i
                 delay(1000L) // 1-second delay
             }
             _isFinished.postValue(true) // Trigger action when done
