@@ -114,8 +114,9 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
 
         viewModelScope.launch{
             countPartnersList.asFlow().collect{
+                Log.i("count partners 2 xxl", "$it")
                 if(it.isNotEmpty()){
-                    addFirebaseListenerToListOfUser(it)
+                    addFirebaseListenerToListOfCountPartner(it)
                 }
             }
         }
@@ -558,90 +559,44 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
      * Firebase Listeners
      */
     // listens for changes in current user
-//    fun maddUserListener(){
-//        removeAllFirebaseListeners()
-//
-//        val currentUserId = getCurrentUser()?.uid.toString()
-//        var userListner = mainRepository.addUserListener(
-//            documentId = currentUserId,
-//            onUpdate = {updatedUserResult->
-//                updatedUserResult.apply {
-//
-//                    onSuccess {updatedUser->
-//                        val countPartners = updatedUser.countPartners
-//                        if(countPartners.isEmpty()){
-//                            Log.i("count partners", "empty $countPartners")
-//                            _selectedUserListData.value = mutableListOf<User>()
-//                            listOfCountPartners = mutableListOf()
-////                            removeCountPartnerListener()
-//                        }else{
-//                            Log.i("count partners", "$countPartners")
-//                            _countPartnersList.value = countPartners
-////                            countPartners.forEach{countPartnerId->
-////                                addFirebaseUserListener(countPartnerId)
-////                            }
-//                            removeUserListener()
-//                        }
-//                    }
-//
-//                    onFailure {
-//                        Log.i("count partners", "${it.message}")
-//                    }
-//                }
-//            }
-//        )
-//        userListener[currentUserId] = userListner
-//    }
+    fun addUserListener(){
+        val currentUserId = getCurrentUser()?.uid.toString()
 
-    fun addFirebaseListenerToListOfUser(documentIDList: List<String>){
+        mainRepository.addUserListener(
+            documentId = currentUserId,
+            onUpdate = {updatedUserResult->
+                updatedUserResult.apply {
+                    onSuccess {updatedUser->
+                        val countPartners = updatedUser.countPartners
+                        if(countPartners.isEmpty()){
+                            Log.i("count partners xxx", "empty $countPartners")
+                            _selectedUserListData.value = mutableListOf<User>()
+                            listOfCountPartners = mutableListOf()
+                            removeCountPartnerListener()
+                        }else{
+                            Log.i("count partners xxx", "$countPartners")
+                            _countPartnersList.value = countPartners
+                            removeUserListener()
+                        }
+                    }
+                    onFailure {
+
+                    }
+                }
+            }
+        )
+    }
+
+    fun addFirebaseListenerToListOfCountPartner(documentIDList: List<String>){
         //  removeCountPartnerListener()
+        Log.i("count partners 3 xxl", "$documentIDList")
         documentIDList.forEach{documentID->
-            addFirebaseUserListener(documentID)
+            addCountPartnerListener(documentID)
         }
     }
 
-//    fun maddFirebaseUserListener(documentID: String){
-//        Log.i("add User listener VM", "${documentID}")
-//
-//        val countPartnerListener = mainRepository.addUserListener(
-//            documentId = documentID,
-//            onUpdate = {userResult->
-//                userResult.apply{
-//
-//                    onSuccess { updatedUser ->
-//
-//                        Log.i("add User listener VM", "success $documentID")
-//                        // Updates the user in the selected users list if present
-//                        val selectedIndex =
-//                            _selectedUserListData.value.indexOfFirst { it.id == documentID }
-//
-//                        Log.i("selectedUserListData 1", "${_selectedUserListData.value}")
-//
-//                        if (selectedIndex != -1) {
-//                            val updatedSelectedList = _selectedUserListData.value.toMutableList()
-//                            updatedSelectedList[selectedIndex] = updatedUser
-//                            _selectedUserListData.value = updatedSelectedList
-//                            Log.i("selectedUserListData 2", "${_selectedUserListData.value}")
-//                        }else{
-//                            listOfCountPartners.add(updatedUser)
-//                            setCountPartnerUserList(listOfCountPartners)
-//                            Log.i("selectedUserListData 3", "${_selectedUserListData.value}")
-//                        }
-//                        Log.i("selectedUserListData 4", "${_selectedUserListData.value}")
-//                        Log.i("listOfCountPartners", "${listOfCountPartners}")
-//
-//                    }
-//                    onFailure { exception ->
-//                        Log.i("add User listener VM", "error: ${exception.message}")
-//                    }
-//                }
-//            }
-//        )
-//        this@MainViewModel.countPartnerListener[documentID] = countPartnerListener
-//    }
-
     // count partner listener
-    fun addFirebaseUserListener(documentID: String){
+    fun addCountPartnerListener(documentID: String){
         mainRepository.addCountPartnerListener(
             documentId = documentID,
             onUpdate = {countPartnerResult->
@@ -678,55 +633,16 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
         )
     }
 
-    fun addUserListener(){
-        val currentUserId = getCurrentUser()?.uid.toString()
-
-        mainRepository.addUserListener(
-            documentId = currentUserId,
-            onUpdate = {updatedUserResult->
-                updatedUserResult.apply {
-                    onSuccess {updatedUser->
-                        val countPartners = updatedUser.countPartners
-                        if(countPartners.isEmpty()){
-                            Log.i("count partners", "empty $countPartners")
-                            _selectedUserListData.value = mutableListOf<User>()
-                            listOfCountPartners = mutableListOf()
-//                            removeCountPartnerListener()
-                        }else{
-                            Log.i("count partners", "$countPartners")
-                            _countPartnersList.value = countPartners
-//                            countPartners.forEach{countPartnerId->
-//                                addFirebaseUserListener(countPartnerId)
-//                            }
-                            removeUserListener()
-                        }
-                    }
-                    onFailure {
-
-                    }
-                }
-            }
-        )
-    }
-
 
 
 
     fun removeUserListener(){
-//        userListener.values.forEach { it.remove() }
-//        userListener.clear()
-//        Log.i("user listener removed", "done")
         mainRepository.stopUserListener()
     }
     fun removeCountPartnerListener(){
-//        countPartnerListener.values.forEach { it.remove() }
-//        countPartnerListener.clear()
-//        Log.i("count partner listener removed", "done")
         mainRepository.stopAllCountPartnerListeners()
     }
     fun removeAllFirebaseListeners(){
-//        removeUserListener()
-//        removeCountPartnerListener()
         mainRepository.stopAllFirebaseListeners()
     }
 
@@ -802,14 +718,14 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
     fun setSelectedUserList(list: MutableList<User>){
         _selectedUserListData.value = list
-        Log.i("add to selected counters list", "$selectedUserListData")
+        Log.i("add to selected counters list", "${selectedUserListData.value}")
     }
     // the "_selectedUserListData" is used to represent both selected users data and count partners
     // CountPartnerUserList is for users that are not the session count starters
     // SelectedUserList is for the users that stared the count session
     fun setCountPartnerUserList(list: MutableList<User>){
         _selectedUserListData.value = list
-        Log.i("add to selected counters list", "$selectedUserListData")
+        Log.i("add to selected counters list", "${list}")
     }
     fun canFetchAvailableUsers(canFetchAvailableUsers: Boolean){
         _canFetchAvailableUsers.value = canFetchAvailableUsers

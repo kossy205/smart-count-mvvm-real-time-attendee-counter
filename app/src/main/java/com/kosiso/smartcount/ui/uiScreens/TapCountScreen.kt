@@ -550,8 +550,7 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                 mainViewModel.updateUserStarterCounterStatus()
                 /**
                  * from the "selectedUserList", extract the docId of each user.
-                 * Add firebase listener to listen for changes in each of the user document,
-                 * using the docId
+                 * update them to include the count partners.
                  */
                 val idListOfSelectedUsers = selectedUserList.map { it.id }
                 idListOfSelectedUsers.forEach {
@@ -578,6 +577,7 @@ private fun OnGoingSessionCount(
     selectedUsers: MutableList<User>
 ){
     // adds firebase listeners to count partners
+    Log.i("selected users to get partners from", "$selectedUsers")
     addFirebaseListenersToCountPartners(mainViewModel, selectedUsers)
     val isCountStarter = isCountStarter(mainViewModel)
 
@@ -749,14 +749,19 @@ private fun OnGoingSessionCount(
 
 
 private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, selectedUsers: MutableList<User>){
-    val countPartnersFromAllUsers = mutableListOf<String>()
-    selectedUsers.forEach{user->
-        val listCountPartnersOfAUser = user.countPartners
-        listCountPartnersOfAUser.forEach{
-            countPartnersFromAllUsers.add(it)
-        }
-    }
-    mainViewModel.addFirebaseListenerToListOfUser(countPartnersFromAllUsers)
+//    Log.i("add Listeners To CountPartners xxx 0", "$selectedUsers")
+//    val countPartnersFromAllUsers = mutableListOf<String>()
+//    selectedUsers.forEach{user->
+//        val listCountPartnersOfAUser = user.countPartners
+//        listCountPartnersOfAUser.forEach{
+//            countPartnersFromAllUsers.add(it)
+//        }
+//    }
+//    Log.i("add Listeners To CountPartners xxx 1", "$selectedUsers")
+//    mainViewModel.addFirebaseListenerToListOfCountPartner(countPartnersFromAllUsers)
+
+    val countPartners = selectedUsers.map { it.id }
+    mainViewModel.addFirebaseListenerToListOfCountPartner(countPartners)
 }
 
 @Composable
