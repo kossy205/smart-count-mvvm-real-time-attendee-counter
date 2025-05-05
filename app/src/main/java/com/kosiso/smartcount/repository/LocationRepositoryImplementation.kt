@@ -9,7 +9,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.firebase.firestore.GeoPoint
-import com.kosiso.foodshare.repository.LocationRepository
+import com.kosiso.smartcount.repository.LocationRepository
 import javax.inject.Inject
 
 class LocationRepositoryImplementation @Inject constructor(

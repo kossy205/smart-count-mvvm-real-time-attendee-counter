@@ -1,4 +1,4 @@
-package com.kosiso.foodshare.repository
+package com.kosiso.smartcount.repository
 
 import android.location.Location
 

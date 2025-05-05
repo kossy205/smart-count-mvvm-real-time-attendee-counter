@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.ListenerRegistration
-import com.kosiso.foodshare.repository.LocationRepository
+import com.kosiso.smartcount.repository.LocationRepository
 import com.kosiso.smartcount.database.models.Count
 import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepository
