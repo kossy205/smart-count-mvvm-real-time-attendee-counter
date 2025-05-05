@@ -64,6 +64,9 @@ import android.Manifest
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -96,6 +99,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.kosiso.smartcount.utils.CountType
+import com.kosiso.smartcount.utils.NetworkUtils
 import kotlin.collections.mutableListOf
 
 
@@ -224,31 +228,13 @@ private fun TopIconSection(mainViewModel: MainViewModel){
     val context = LocalContext.current
     val onlineStatusData = mainViewModel.onlineStatus.collectAsState().value
     var isOnline by remember { mutableStateOf(false) }
+    var isAllGranted by remember { mutableStateOf(false) }
 
     var shouldRequestPermission by remember { mutableStateOf(false) }
-    val permissions = when {
-        // android 10 and above
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        )
-        // android 9 and below
-        else -> arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-    }
-    // Update permission state reactively
-    var arePermissionsGranted by remember {
-        mutableStateOf(
-            permissions.all {
-                ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-            }
-        )
-    }
-    Log.i("permission in icon section granted?", "$arePermissionsGranted")
+    var arePermissionsGranted  = arePermissionsGranted(isAllGranted)
+    val permissions = permissions()
 
+    val isInternetAvailable by rememberInternetConnectivityState()
 
     // user details gotten would be used to upload to available users collection on the db
     val getUserDetails = mainViewModel.getUserDetailsResult.collectAsState()
@@ -338,7 +324,13 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     onIconClick = {
                         if(arePermissionsGranted == true){
                             // permissions granted
-                            mainViewModel.onlineStatus(!isOnline)
+                            if(isInternetAvailable){
+                                Log.i("is Internet Available", "$isInternetAvailable")
+                                mainViewModel.onlineStatus(!isOnline)
+                            }else{
+                                Log.i("is Internet Available", "$isInternetAvailable")
+                                Toast.makeText(context, "Enable internet to be discovered by other counters", Toast.LENGTH_LONG).show()
+                            }
                         }else{
                             shouldRequestPermission = true
                         }
@@ -359,6 +351,7 @@ private fun TopIconSection(mainViewModel: MainViewModel){
                     onGranted = {
                         // Update permission status when granted
                         // Makes it known that the permissions has been granted
+                        isAllGranted = true
                         arePermissionsGranted = permissions.all {
                             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
                         }
@@ -480,6 +473,13 @@ private fun SessionCountSection(mainViewModel: MainViewModel){
 private fun InactiveSessionCount(mainViewModel: MainViewModel){
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var isAllGranted by remember { mutableStateOf(false) }
+
+    var shouldRequestPermission by remember { mutableStateOf(false) }
+    var arePermissionsGranted  = arePermissionsGranted(isAllGranted)
+    val permissions = permissions()
+
+    val isInternetAvailable by rememberInternetConnectivityState()
 
     Box(
         contentAlignment = Alignment.Center,
@@ -535,11 +535,22 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                         iconColor = White,
                         backgroundColor = White.copy(alpha = 0.2f),
                         onIconClick = {
-                            showDialog = true
-                            // the "canFetchAvailableUsers" has to come first,
-                            // so users that click this button would be able to fetch available users
-                            mainViewModel.canFetchAvailableUsers(true)
-                            mainViewModel.onlineStatus(true)
+                            if(arePermissionsGranted == true){
+                                // permissions granted
+                                if(isInternetAvailable){
+                                    Log.i("is Internet Available", "$isInternetAvailable")
+                                    showDialog = true
+                                    // the "canFetchAvailableUsers" has to come first,
+                                    // so users that click this button would be able to fetch available users
+                                    mainViewModel.canFetchAvailableUsers(true)
+                                    mainViewModel.onlineStatus(true)
+                                }else{
+                                    Log.i("is Internet Available", "$isInternetAvailable")
+                                    Toast.makeText(context, "Enable internet to start session count", Toast.LENGTH_LONG).show()
+                                }
+                            }else{
+                                shouldRequestPermission = true
+                            }
                         },
                         modifier = Modifier
                             .size(25.dp)
@@ -581,6 +592,24 @@ private fun InactiveSessionCount(mainViewModel: MainViewModel){
                 }
             },
             mainViewModel = mainViewModel
+        )
+    }
+    if(shouldRequestPermission){
+        LocationPermission(
+            onGranted = {
+                // Update permission status when granted
+                // Makes it known that the permissions has been granted
+                isAllGranted = true
+                arePermissionsGranted = permissions.all {
+                    ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                }
+                showDialog = true
+                // the "canFetchAvailableUsers" has to come first,
+                // so users that click this button would be able to fetch available users
+                mainViewModel.canFetchAvailableUsers(true)
+                mainViewModel.onlineStatus(true)
+                shouldRequestPermission = false
+            }
         )
     }
 }
@@ -777,17 +806,6 @@ private fun removeCountPartners(mainViewModel: MainViewModel, countPartners: Mut
 
 
 private fun addFirebaseListenersToCountPartners(mainViewModel: MainViewModel, selectedUsers: MutableList<User>){
-//    Log.i("add Listeners To CountPartners xxx 0", "$selectedUsers")
-//    val countPartnersFromAllUsers = mutableListOf<String>()
-//    selectedUsers.forEach{user->
-//        val listCountPartnersOfAUser = user.countPartners
-//        listCountPartnersOfAUser.forEach{
-//            countPartnersFromAllUsers.add(it)
-//        }
-//    }
-//    Log.i("add Listeners To CountPartners xxx 1", "$selectedUsers")
-//    mainViewModel.addFirebaseListenerToListOfCountPartner(countPartnersFromAllUsers)
-
     val countPartners = selectedUsers.map { it.id }
     mainViewModel.addFirebaseListenerToListOfCountPartner(countPartners)
 }
@@ -1316,22 +1334,57 @@ private fun CountersItem(user: User){
 
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun LocationPermission(onGranted: @Composable () -> Unit) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
-    var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
-    var isAllGranted by remember { mutableStateOf(false) }
-    var shouldOpenAppSettingToAcceptPermission by remember { mutableStateOf(false) }
 
-    val permissions = when {
+
+/**
+ * Internet
+ */
+@Composable
+fun rememberInternetConnectivityState(context: Context = LocalContext.current): State<Boolean> {
+    // Create a mutable state that tracks connectivity
+    val isConnected = remember { mutableStateOf(NetworkUtils.isInternetAvailable(context)) }
+
+    // Register a network callback to update the state when connectivity changes
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isConnected.value = true
+            }
+
+            override fun onLost(network: Network) {
+                isConnected.value = false
+            }
+        }
+
+        // Register callback for network changes
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        } else {
+            @Suppress("DEPRECATION")
+            val request = NetworkRequest.Builder().build()
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+        }
+
+        // Cleanup when leaving the composition
+        onDispose {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        }
+    }
+
+    return isConnected
+}
+
+/**
+ * Location functions
+ */
+fun permissions(): Array<String>{
+    return when {
         // android 10 and above
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION
         )
         // android 9 and below
         else -> arrayOf(
@@ -1339,6 +1392,34 @@ fun LocationPermission(onGranted: @Composable () -> Unit) {
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
     }
+}
+@Composable
+fun arePermissionsGranted(isAllGranted: Boolean): Boolean{
+    val context = LocalContext.current
+    val permissions = permissions()
+    var arePermissionsGranted by remember { mutableStateOf(isAllGranted) }
+
+    // Update permission state when isAllGranted changes
+    LaunchedEffect(isAllGranted) {
+        arePermissionsGranted = permissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+        Log.i("are permissions granted?", "$arePermissionsGranted")
+    }
+    Log.i("are permissions granted?", "$arePermissionsGranted")
+    return arePermissionsGranted
+}
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun LocationPermission(onGranted: @Composable () -> Unit) {
+    Log.i("request location permission", "start")
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var showPermanentlyDeniedDialog by remember { mutableStateOf(false) }
+    var showTemporarilyDeniedDialog by remember { mutableStateOf(false) }
+    var isAllGranted by remember { mutableStateOf(false) }
+    var shouldOpenAppSettingToAcceptPermission by remember { mutableStateOf(false) }
+
+    val permissions = permissions()
 
     // Create a list of permission states for each permission
     val permissionStates = permissions.map { permission ->
@@ -1354,12 +1435,12 @@ fun LocationPermission(onGranted: @Composable () -> Unit) {
                     isGranted -> {
                         // Permission was granted
                         isAllGranted = true
-                        Log.i("location permission granted", "granted $permission")
+                        Log.i("location permission", "granted $permission")
                     }
                     permissionStates.find { it.permission == permission }?.status?.shouldShowRationale == true -> {
                         // Permission was denied, but we can ask again
                         showTemporarilyDeniedDialog = true
-                        Log.i("location permission denied", "temporal $permission")
+                        Log.i("location permission", "temporal $permission")
                     }
                     else -> {
                         // Permission permanently denied
@@ -1399,6 +1480,7 @@ fun LocationPermission(onGranted: @Composable () -> Unit) {
 
     // Show dialog for temporarily denied permissions
     if (showTemporarilyDeniedDialog) {
+        Log.i("location permission dialog", "temporal $showTemporarilyDeniedDialog")
         Common.ShowDialog(
             titleText = "Permission Required",
             dialogText = "Please grant location permissions to count with other users.",
@@ -1416,6 +1498,7 @@ fun LocationPermission(onGranted: @Composable () -> Unit) {
 
     // Show dialog for permanently denied permissions
     if (showPermanentlyDeniedDialog) {
+        Log.i("location permission dialog", "permanent $showPermanentlyDeniedDialog")
         Common.ShowDialog(
             titleText = "Permission Required",
             dialogText = "Locations permissions are required to count with other users. You can go to settings and manually grant them.",

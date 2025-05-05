@@ -10,7 +10,6 @@ import androidx.lifecycle.LifecycleService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.firestore.GeoPoint
-import com.kosiso.foodshare.repository.LocationRepository
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint

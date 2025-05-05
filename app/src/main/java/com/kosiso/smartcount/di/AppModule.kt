@@ -8,11 +8,11 @@ import com.google.android.gms.location.LocationServices
 import androidx.room.Room
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.kosiso.foodshare.repository.LocationRepository
 import org.imperiumlabs.geofirestore.GeoFirestore
 import com.kosiso.smartcount.database.CountDao
 import com.kosiso.smartcount.database.RoomDatabase
 import com.kosiso.smartcount.database.UserDao
+import com.kosiso.smartcount.repository.LocationRepository
 import com.kosiso.smartcount.repository.LocationRepositoryImplementation
 import com.kosiso.smartcount.repository.MainRepoImpl
 import com.kosiso.smartcount.repository.MainRepository
