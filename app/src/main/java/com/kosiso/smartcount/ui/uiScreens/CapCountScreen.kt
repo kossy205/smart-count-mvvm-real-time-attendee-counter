@@ -29,9 +29,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,6 +94,13 @@ private var currentFaceCount = mutableStateOf(0)
 
 @Composable
 fun CapCountScreen(){
+    val showAlertDialog = remember { mutableStateOf(true) }
+
+    if (showAlertDialog.value) {
+        BetaFeatureAlert(
+            onDismiss = { showAlertDialog.value = false }
+        )
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -583,7 +592,7 @@ private fun ClickToCountBox(modifier: Modifier = Modifier){
                                 color = White
                             )
                         ) {
-                            append("313")
+                            append("0")
                         }
                         withStyle(
                             style = SpanStyle(
@@ -630,5 +639,30 @@ private fun ClickToCountBox(modifier: Modifier = Modifier){
             }
         }
     }
+}
+
+@Composable
+fun BetaFeatureAlert(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { /* Prevent dismissing by clicking outside */ },
+        title = { Text("Face Counting Feature") },
+        text = {
+            Text(
+                "This feature is currently in beta and may have occasional bugs or limitations.\n\n" +
+                        "How to Use:\n" +
+                        "1. Position the camera to capture the people you wish to count.\n" +
+                        "2. Adjust the camera frame using the handles at the edges.\n" +
+                        "3. View real-time results displaying the number of detected faces.\n\n" +
+                        "Please share your feedback at [Profile Tab]->[Support] to help us enhance this feature."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onDismiss() }) {
+                Text("Got it")
+            }
+        }
+    )
 }
 

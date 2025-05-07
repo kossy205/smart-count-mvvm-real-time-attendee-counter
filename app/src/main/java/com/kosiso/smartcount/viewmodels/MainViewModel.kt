@@ -15,6 +15,7 @@ import com.kosiso.smartcount.database.models.User
 import com.kosiso.smartcount.repository.MainRepository
 import com.kosiso.smartcount.ui.screen_states.MainOperationState
 import com.kosiso.smartcount.utils.Constants
+import com.kosiso.smartcount.utils.CrashlyticsUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,9 @@ import org.imperiumlabs.geofirestore.listeners.GeoQueryEventListener
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor(val mainRepository: MainRepository): ViewModel(){
+class MainViewModel @Inject constructor(
+    val mainRepository: MainRepository,
+    private val crashlyticsUtils: CrashlyticsUtils): ViewModel(){
 
     private lateinit var geoQueryEventListener: GeoQueryEventListener
     private lateinit var geoQuery: GeoQuery
@@ -34,7 +37,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     @Inject lateinit var locationRepository: LocationRepository
 
     // used to make sure available user is fetched once and with the first geoPoint
-    // this way it doesnt keep fetching if there is a new location update every 5 sec
+    // this way it doesn't keep fetching if there is a new location update every 5 sec
     // the list on the screen no longer blinks
     var hasFetchedAvailableUser = false
 
@@ -136,6 +139,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             signUpResult.onFailure {
                 _authOperationResult.value = MainOperationState.Error(it.message.toString())
                 Log.i("signing up user", "errorMessage: ${it}")
+                crashlyticsUtils.recordException(it)
             }
         }
     }
@@ -153,6 +157,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             signInResult.onFailure {
                 _authOperationResult.value = MainOperationState.Error(it.message.toString())
                 Log.i("logging in user", "errorMessage: ${it}")
+                crashlyticsUtils.recordException(it)
             }
         }
     }
@@ -172,6 +177,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     Log.i("get user details for roomDB", "error getting user details to insert into room: ${it.message}")
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -182,6 +188,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
     }
 
     fun signOut(){
+        Log.i("user signed out", "signed out")
         return mainRepository.signOut()
     }
 
@@ -213,6 +220,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
             setLocationGeofirestore.onFailure {
                 Log.i("geofirestore location", "error: ${it.message}")
+                crashlyticsUtils.recordException(it)
             }
         }
     }
@@ -243,6 +251,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             override fun onGeoQueryError(exception: Exception) {
                 Log.i("geoquery error", "$exception")
                 _availableUsers.value = MainOperationState.Error(exception.message.toString())
+                crashlyticsUtils.recordException(exception)
             }
 
             override fun onGeoQueryReady() {
@@ -333,6 +342,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
             registerUserInDBResult.onFailure {
                 _registerOperationResult.value = MainOperationState.Error(it.message.toString())
+                crashlyticsUtils.recordException(it)
             }
 
         }
@@ -347,6 +357,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     _updateUserDetailsResult.value = it.message.toString()
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -360,6 +371,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
             getUserDetails.onFailure {
                 _getUserDetailsResult.value = MainOperationState.Error(it.message.toString())
+                crashlyticsUtils.recordException(it)
 
             }
         }
@@ -386,7 +398,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             uploadToAvailableUsers.onFailure {
                 _uploadToAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
                 Log.i("add To Available Users DB VM", "error ${it.message}")
-
+                crashlyticsUtils.recordException(it)
             }
         }
     }
@@ -401,6 +413,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             getAvailableUser.onFailure {
                 Log.i("check If User IsCount Starter", it.message.toString())
                 _isUserCountStarter.value = MainOperationState.Error(it.message.toString())
+                crashlyticsUtils.recordException(it)
 
             }
         }
@@ -417,6 +430,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             }
             removeFromAvailableUsers.onFailure {
                 _removeFromAvailableUsersDBResult.value = MainOperationState.Error(it.message.toString())
+                crashlyticsUtils.recordException(it)
 
             }
         }
@@ -434,6 +448,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     Log.i("user count partners update", "failed ${it.message}")
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -449,6 +464,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     Log.i("user count update", "failed ${it.message}")
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -480,6 +496,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     _updateUserDetailsResult.value = it.message.toString()
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -493,6 +510,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     _getUserDetailsFromRoomDBResult.value = MainOperationState.Error(it.message.toString())
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -510,6 +528,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
             } catch (e: Exception) {
                 _roomOperationResult.value =
                     MainOperationState.Error(e.message ?: "Error fetching count history")
+                crashlyticsUtils.recordException(e)
             }
         }
     }
@@ -533,6 +552,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                 }
                 onFailure {
                     Log.i("insert User Into RoomDB", "failed: ${it.message}")
+                    crashlyticsUtils.recordException(it)
                 }
             }
         }
@@ -580,7 +600,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                         }
                     }
                     onFailure {
-
+                        crashlyticsUtils.recordException(it)
                     }
                 }
             }
@@ -627,6 +647,7 @@ class MainViewModel @Inject constructor(val mainRepository: MainRepository): Vie
                     }
                     onFailure { exception ->
                         Log.i("add User listener VM", "error: ${exception.message}")
+                        crashlyticsUtils.recordException(exception)
                     }
                 }
             }
