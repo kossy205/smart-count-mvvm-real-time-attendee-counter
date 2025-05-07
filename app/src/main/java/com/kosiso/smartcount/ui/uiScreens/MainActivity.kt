@@ -263,8 +263,8 @@ class MainActivity : ComponentActivity() {
                         if (mainAppNavController.currentDestination?.route != it.route) {
                             mainAppNavController.navigate(it.route) {
                                 // Pop all entries above CAP_COUNT, keeping CAP_COUNT
-//                                popUpTo(MainAppNavigation.CAP_COUNT.route) { inclusive = true }
-                                launchSingleTop = true // doesnt add a route to back stack if route is reselected.
+                                popUpTo(MainAppNavigation.TAP_COUNT.route) { inclusive = true }
+                                launchSingleTop = true // doesn't add a route to back stack if route is reselected.
                             }
                         }
                     }
@@ -292,7 +292,7 @@ class MainActivity : ComponentActivity() {
          * If the composable recomposes, the view model goes to default and resets too
          */
 
-        NavHost(navController = mainAppNavController, startDestination = MainAppNavigation.CAP_COUNT.route){
+        NavHost(navController = mainAppNavController, startDestination = MainAppNavigation.TAP_COUNT.route){
             composable(MainAppNavigation.CAP_COUNT.route){
                 CapCountScreen()
                 Log.i("Home screen Clicked", "Home screen Clicked")
@@ -378,7 +378,7 @@ class MainActivity : ComponentActivity() {
             Constants.ACTION_SHOW_TAP_SCREEN -> {
                 navController.navigate(MainAppNavigation.TAP_COUNT.route) {
                     // Optional: Pop up to the start destination to avoid building up a large stack of destinations
-                    popUpTo(MainAppNavigation.CAP_COUNT.route) {
+                    popUpTo(MainAppNavigation.TAP_COUNT.route) {
                         saveState = true
                     }
                     // Avoid multiple copies of the same destination

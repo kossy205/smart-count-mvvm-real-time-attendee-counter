@@ -7,6 +7,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import androidx.room.Room
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import org.imperiumlabs.geofirestore.GeoFirestore
 import com.kosiso.smartcount.database.CountDao
@@ -84,6 +85,11 @@ object AppModule {
         Log.i("GeoFirestore", "Providing GeoFirestore instance")
         return GeoFirestore(firestore.collection(Constants.AVAILABLE_USERS))
     }
+
+
+    @Singleton
+    @Provides
+    fun provideCrashlytics(): FirebaseCrashlytics = FirebaseCrashlytics.getInstance()
 
 
 
