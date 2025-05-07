@@ -227,6 +227,7 @@ private fun ProfileDetails(mainViewModel: MainViewModel){
 @Composable
 private fun ProfileFunctions(mainViewModel: MainViewModel, onNavigateToIntroScreen: () -> Unit){
 
+    var showFeatureDialog by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -244,6 +245,20 @@ private fun ProfileFunctions(mainViewModel: MainViewModel, onNavigateToIntroScre
                     modifier = Modifier
                     .fillMaxWidth()
         ){
+            FunctionBox(
+                functionName = "Feature Request",
+                iconId = R.drawable.ic_idea,
+                contentColor = Black.copy(alpha = 0.8f),
+                onClick = {
+                    showFeatureDialog = true
+                },
+            )
+
+            Divider(
+                color = Color.Black.copy(alpha = 0.1f),
+                thickness = 1.dp
+            )
+
             FunctionBox(
                 functionName = "Support",
                 iconId = R.drawable.ic_online,
@@ -284,6 +299,13 @@ private fun ProfileFunctions(mainViewModel: MainViewModel, onNavigateToIntroScre
         }
     }
 
+    if(showFeatureDialog){
+        ShowFeatureDialog(
+            showDialog = {
+                showFeatureDialog = it
+            }
+        )
+    }
     if(showSupportDialog){
         ShowSupportDialog(
             showDialog = {
@@ -314,6 +336,36 @@ private fun ProfileFunctions(mainViewModel: MainViewModel, onNavigateToIntroScre
             }
         )
     }
+}
+
+@Composable
+fun ShowFeatureDialog(showDialog: (Boolean)-> Unit){
+    val featureLink = "https://forms.gle/yY6ujpv5qSJTiaAY9"
+    val context = LocalContext.current
+
+    ShowDialog(
+        dialogTitle = "Request A Feature",
+        dialogContent = {
+            Text(
+                text = "Tell us what feature you'd love to see in Smart Counter and we would implement it ASAP! The goal is to make life convenient for you.",
+                style = TextStyle(
+                    color = Black,
+                    fontFamily = onest,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp
+                ),
+                modifier = Modifier
+                    .padding(15.dp)
+            )
+        },
+        onDismiss = {showDialog(false)},
+        cancelButton = {showDialog(false)},
+        confirmButton = {
+            openLink(context, featureLink)
+            showDialog(false)
+        },
+        confirmButtonText = "Request"
+    )
 }
 
 @Composable
