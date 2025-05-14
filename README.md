@@ -16,15 +16,15 @@ Built with MVVM architecture and clean code for easy maintanance and scalability
   Count using the adjustible camera view, returns the number of faces detected by the camera.
 
 - ## Individual Count:
-  Count using the volume+ and volume- to increament and decreament count respectively.
-  Mimics the electronic tally counter.
+  - Count using the volume+ and volume- to increament and decreament count respectively.
+  - Mimics the electronic tally counter.
 
 - ## Session Count:
-  Count as a crew/team and see all participants' count and total in real-time.
-  Count with other available users who are online and 1KM around you.
-  See available counters around you.
-  Select who joins the count session.
-  See each others count in real-time.
+  - Count as a crew/team and see all participants' count and total in real-time.
+  - Count with other available users who are online and 1KM around you.
+  - See available counters around you.
+  - Select who joins the count session.
+  - See each others count in real-time.
 
 - Save Count to offline database (RoomDB).
 
